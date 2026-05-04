@@ -51,7 +51,8 @@ export const api = {
   deletarUsuario: (tipo, id)     => req("DELETE", `/usuarios/${tipo}/${id}`),
 
   // Estante
-  getEstante:         ()  => req("GET",    "/estante"),
-  adicionarEstante:   (livroId) => req("POST",   `/estante/${livroId}`),
-  removerEstante:     (livroId) => req("DELETE",  `/estante/${livroId}`),
+  getEstante:             ()  => req("GET",    "/estante"),
+  adicionarEstante:       (livroId) => req("POST",   `/estante/${livroId}`),
+  atualizarStatusEstante: (livroId, status) => req("PATCH", `/estante/${livroId}`, { status }),
+  removerEstante:         (livroId) => req("DELETE",  `/estante/${livroId}`),
 };

@@ -19,7 +19,7 @@ router.get("/", authMiddleware, async (req, res) => {
 
 // POST /api/livros — só bibliotecário
 router.post("/", authMiddleware, soBibliotecario, async (req, res) => {
-  const { titulo, autor, nacionalidade, editora, ano, exemplares, isbn, genero } = req.body;
+  const { titulo, autor, nacionalidade, editora, ano, sinopse, exemplares, isbn, genero } = req.body;
 
   if (!titulo || !autor) {
     return res.status(400).json({ erro: "titulo e autor são obrigatórios." });
@@ -27,11 +27,11 @@ router.post("/", authMiddleware, soBibliotecario, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `INSERT INTO livros (titulo, autor, nacionalidade, editora, ano, exemplares, isbn, genero)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      `INSERT INTO livros (titulo, autor, nacionalidade, editora, ano, sinopse, exemplares, isbn, genero)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
        RETURNING *`,
       [titulo, autor, nacionalidade || null, editora || null,
-       ano || null, exemplares || 1, isbn || null, genero || null]
+       ano || null, sinopse || null, exemplares || 1, isbn || null, genero || null]
     );
     return res.status(201).json(rows[0]);
   } catch (err) {
@@ -43,17 +43,17 @@ router.post("/", authMiddleware, soBibliotecario, async (req, res) => {
 // PUT /api/livros/:id — só bibliotecário
 router.put("/:id", authMiddleware, soBibliotecario, async (req, res) => {
   const { id } = req.params;
-  const { titulo, autor, nacionalidade, editora, ano, exemplares, isbn, genero } = req.body;
+  const { titulo, autor, nacionalidade, editora, ano, sinopse, exemplares, isbn, genero } = req.body;
 
   try {
     const { rows } = await pool.query(
       `UPDATE livros
        SET titulo=$1, autor=$2, nacionalidade=$3, editora=$4,
-           ano=$5, exemplares=$6, isbn=$7, genero=$8
-       WHERE id=$9
+           ano=$5, sinopse=$6, exemplares=$7, isbn=$8, genero=$9
+       WHERE id=$10
        RETURNING *`,
       [titulo, autor, nacionalidade || null, editora || null,
-       ano || null, exemplares || 1, isbn || null, genero || null, id]
+       ano || null, sinopse || null, exemplares || 1, isbn || null, genero || null, id]
     );
     if (rows.length === 0) {
       return res.status(404).json({ erro: "Livro não encontrado." });

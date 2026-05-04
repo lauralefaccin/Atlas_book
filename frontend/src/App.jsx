@@ -7,6 +7,7 @@ import Auth from "./pages/Auth";
 
 import Dashboard from "./pages/Dashboard";
 import Livros from "./pages/Livros";
+import BookDetail from "./pages/BookDetail";
 import Autores from "./pages/Autores";
 import Leitores from "./pages/Leitores";
 import Estante from "./pages/Estante";
@@ -27,6 +28,7 @@ function ProtectedApp() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/livros" element={<Livros />} />
+          <Route path="/livro/:id" element={<BookDetail />} />
           <Route path="/autores" element={<Autores />} />
           <Route path="/estante" element={<Estante />} />
           <Route path="/generos" element={<Generos />} />

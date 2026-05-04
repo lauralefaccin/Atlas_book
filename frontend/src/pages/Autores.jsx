@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { saveAutores, useAutores } from "../data/autores";
 import { useAuth } from "../context/AuthContext";
 import { usePopup } from "../context/PopupContext";
@@ -24,6 +25,7 @@ export default function Autores() {
   const isBibliotecario = user?.tipo === "bibliotecario";
   const { showPopup, showConfirmPopup } = usePopup();
   const [estanteIds, setEstanteIds] = useState([]);
+  const navigate = useNavigate();
 
   const getCorGenero = (generoNome) => {
     const generoCustomizado = generos.find((g) => g.nome === generoNome);
@@ -36,6 +38,7 @@ export default function Autores() {
   const [busca, setBusca] = useState("");
   const [selectedAutor, setSelectedAutor] = useState(null);
   const [formAberto, setFormAberto] = useState(false);
+  const [expandedLivroId, setExpandedLivroId] = useState(null);
   const [editandoId, setEditandoId] = useState(null);
   const [formAutor, setFormAutor] = useState(initialForm);
 
@@ -360,26 +363,39 @@ export default function Autores() {
 
           {livrosFiltradosPorBusca.length > 0 ? (
             <div className="livros-grid">
-              {livrosFiltradosPorBusca.map((livro) => (
-                <article key={livro.id} className="livro-card" style={{ "--livro-accent": getCorGenero(livro.genero) }}>
-                  <div className="livro-card-header">
-                    <p className="livro-genero">{livro.genero}</p>
-                    <button 
-                      className="btn-add-estante" 
-                      onClick={(e) => adicionarAEstante(livro, e)}
-                      title="Salvar na Estante"
+              {livrosFiltradosPorBusca.map((livro) => {
+                const aberto = expandedLivroId === livro.id;
+                return (
+                  <article
+                    key={livro.id}
+                    className={`livro-card${aberto ? " expanded" : ""}`}
+                    style={{ "--livro-accent": getCorGenero(livro.genero) }}
+                  >
+                    <div className="livro-card-header">
+                      <p className="livro-genero">{livro.genero}</p>
+                      <button 
+                        className="btn-add-estante" 
+                        onClick={(e) => adicionarAEstante(livro, e)}
+                        title="Salvar na Estante"
+                      >
+                        <img src={estanteIcon} alt="Salvar na Estante" />
+                      </button>
+                    </div>
+                    <div
+                      className="livro-card-clickable"
+                      onClick={() => navigate(`/livro/${livro.id}`)}
+                      style={{ cursor: "pointer" }}
                     >
-                      <img src={estanteIcon} alt="Salvar na Estante" />
-                    </button>
-                  </div>
-                  <h3>{livro.titulo}</h3>
-                  <p className="livro-autor">{selectedAutor.nome} • {livro.nacionalidade}</p>
-                  <div className="livro-meta">
-                    <p>{livro.editora || "Editora não informada"}</p>
-                    <p>{livro.ano || "-"}</p>
-                  </div>
-                </article>
-              ))}
+                      <h3>{livro.titulo}</h3>
+                      <p className="livro-autor">{selectedAutor.nome} • {livro.nacionalidade}</p>
+                      <div className="livro-meta">
+                        <p>{livro.editora || "Editora não informada"}</p>
+                        <p>{livro.ano || "-"}</p>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           ) : (
             <div className="livros-vazio">Nenhum livro encontrado para este autor.</div>

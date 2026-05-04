@@ -48,13 +48,52 @@
 }
 
 .livros-filters {
-  display: grid;
+  display: flex;
   align-items: center;
-  grid-template-columns: minmax(280px, 1fr) auto auto;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 14px;
   padding-bottom: 12px;
   border-bottom: 1px solid #e4d8c4;
+  flex-wrap: wrap;
+}
+
+.livros-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.livros-status-filter {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.status-filter-btn {
+  background: #fff;
+  border: 1px solid #dfd1ba;
+  border-radius: 8px;
+  color: #6f5f49;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.status-filter-btn:hover {
+  border-color: #c08928;
+  color: #c08928;
+}
+
+.status-filter-btn.active {
+  background: #c08928;
+  border-color: #c08928;
+  color: #fff;
 }
 
 .livros-form-panel {
@@ -168,17 +207,6 @@
   background: #fff;
 }
 
-.livros-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid #dfd1ba;
-  border-radius: 12px;
-  background: #fff;
-  padding: 9px 12px;
-  color: #8f8168;
-}
-
 .livros-search input {
   width: 100%;
   border: none;
@@ -213,6 +241,172 @@
   box-shadow: 0 6px 14px rgba(44, 31, 18, 0.08);
   padding: 10px 12px;
   min-height: 142px;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.livro-card.expanded {
+  transform: translateY(4px);
+  box-shadow: 0 12px 24px rgba(44, 31, 18, 0.14);
+  border-color: #d7c294;
+}
+
+.livro-card-clickable {
+  flex: 1;
+  cursor: pointer;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.livro-card-clickable:hover h3 {
+  color: #c08928;
+  text-decoration: underline;
+}
+
+.livro-card-expand {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.28s ease, opacity 0.28s ease;
+}
+
+.livro-card-expand.is-open {
+  max-height: 260px;
+  opacity: 1;
+}
+
+.livro-sinopse {
+  margin-top: 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #5d5142;
+  white-space: pre-line;
+}
+
+.estante-filters {
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: flex-start;
+  gap: 14px;
+  align-items: center;
+}
+
+.estante-filters label {
+  font-weight: 700;
+  color: #3f311f;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.estante-filters select {
+  min-width: 220px;
+}
+
+.livro-status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.livro-status-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: #7b6e5a;
+  color: #fff;
+}
+
+.livro-status-tag.favoritos {
+  background: #d49f00;
+}
+
+.livro-status-tag.lendo {
+  background: #4a6d58;
+}
+
+.livro-status-tag.pretendo-ler {
+  background: #8f7d5a;
+}
+
+.livro-status-tag.finalizado {
+  background: #4d6c8c;
+}
+
+.livro-status-tag.desistiu {
+  background: #8f4a53;
+}
+
+.status-menu-wrapper {
+  position: relative;
+}
+
+.btn-status-toggle {
+  background: #f5efe7;
+  border: 1px solid #dfd1ba;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #3f311f;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.status-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  background: #fff;
+  border: 1px solid #dfd1ba;
+  border-radius: 12px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+  min-width: 180px;
+  overflow: hidden;
+}
+
+.status-menu button {
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 10px 12px;
+  cursor: pointer;
+  color: #3f311f;
+  font-weight: 600;
+}
+
+.status-menu button:hover,
+.status-menu button.active {
+  background: #f2e7d6;
+}
+
+.btn-favorite {
+  border-radius: 10px;
+}
+
+.btn-favorite.active,
+.btn-favorite:hover {
+  background: #ffeb9d;
+}
+
+.btn-favorite img {
+  width: 16px;
+  height: 16px;
 }
 
 .livro-genero {

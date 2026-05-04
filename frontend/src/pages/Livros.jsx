@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./Livros.css";
 import { GENEROS, getGeneroColor, useGeneros } from "../data/generos";
 import { useAutores } from "../data/autores";
@@ -13,6 +13,7 @@ export default function Livros() {
   const generos = useGeneros();
   const [busca, setBusca] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
   const generoParam = params.get("genero");
   const [genero, setGenero] = useState(generoParam || "Todos os gêneros");
@@ -38,25 +39,36 @@ export default function Livros() {
     nacionalidade: "",
     editora: "",
     ano: "",
+    sinopse: "",
   };
 
   const [formLivro, setFormLivro] = useState(initialForm);
   const [formAberto, setFormAberto] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
+  const [expandedLivroId, setExpandedLivroId] = useState(null);
+  const [estanteStatus, setEstanteStatus] = useState({});
+  const [statusSelecionados, setStatusSelecionados] = useState([]);
 
   useEffect(() => {
     async function loadEstante() {
       if (!user) {
         setEstanteIds([]);
+        setEstanteStatus({});
         return;
       }
 
       try {
         const estante = await api.getEstante();
         setEstanteIds(estante.map((livro) => livro.id));
+        const statusMap = {};
+        estante.forEach((livro) => {
+          statusMap[livro.id] = livro.status;
+        });
+        setEstanteStatus(statusMap);
       } catch (err) {
         console.error("Erro ao carregar estante:", err.message);
         setEstanteIds([]);
+        setEstanteStatus({});
       }
     }
 
@@ -129,12 +141,21 @@ export default function Livros() {
     return acervo.filter((livro) => {
       const atendeGenero = genero === "Todos os gêneros" || livro.genero === genero;
       if (!atendeGenero) return false;
+      
+      // Filtro de status
+      if (statusSelecionados.length > 0) {
+        const livroStatus = estanteStatus[livro.id];
+        if (!livroStatus || !statusSelecionados.includes(livroStatus)) {
+          return false;
+        }
+      }
+      
       if (!termo) return true;
       const autorNome = getAutorNome(livro);
       const alvoBusca = `${livro.titulo} ${autorNome}`.toLowerCase();
       return alvoBusca.includes(termo);
     });
-  }, [busca, genero, acervo, autoresMap]);
+  }, [busca, genero, acervo, autoresMap, statusSelecionados, estanteStatus]);
 
   // FUNÇÃO PARA SALVAR NA ESTANTE
   const adicionarAEstante = async (livro, e) => {
@@ -180,6 +201,7 @@ export default function Livros() {
       nacionalidade: livro.nacionalidade || "",
       editora: livro.editora || "",
       ano: livro.ano?.toString() || "",
+      sinopse: livro.sinopse || "",
     });
     setEditandoId(livro.id);
     setFormAberto(true);
@@ -214,6 +236,7 @@ export default function Livros() {
       nacionalidade: formLivro.nacionalidade.trim(),
       editora: formLivro.editora.trim(),
       ano: Number(formLivro.ano) || 0,
+      sinopse: formLivro.sinopse.trim(),
     };
 
     try {
@@ -282,6 +305,63 @@ export default function Livros() {
           ))}
         </select>
 
+        <div className="livros-status-filter">
+          <button
+            className={`status-filter-btn ${statusSelecionados.length === 0 ? "active" : ""}`}
+            onClick={() => setStatusSelecionados([])}
+          >
+            Todos
+          </button>
+          <button
+            className={`status-filter-btn ${statusSelecionados.includes("Pretendo Ler") ? "active" : ""}`}
+            onClick={() => {
+              setStatusSelecionados((prev) =>
+                prev.includes("Pretendo Ler")
+                  ? prev.filter((s) => s !== "Pretendo Ler")
+                  : [...prev, "Pretendo Ler"]
+              );
+            }}
+          >
+            Pretendo Ler
+          </button>
+          <button
+            className={`status-filter-btn ${statusSelecionados.includes("Lendo") ? "active" : ""}`}
+            onClick={() => {
+              setStatusSelecionados((prev) =>
+                prev.includes("Lendo")
+                  ? prev.filter((s) => s !== "Lendo")
+                  : [...prev, "Lendo"]
+              );
+            }}
+          >
+            Lendo
+          </button>
+          <button
+            className={`status-filter-btn ${statusSelecionados.includes("Finalizado") ? "active" : ""}`}
+            onClick={() => {
+              setStatusSelecionados((prev) =>
+                prev.includes("Finalizado")
+                  ? prev.filter((s) => s !== "Finalizado")
+                  : [...prev, "Finalizado"]
+              );
+            }}
+          >
+            Finalizado
+          </button>
+          <button
+            className={`status-filter-btn ${statusSelecionados.includes("Desistiu") ? "active" : ""}`}
+            onClick={() => {
+              setStatusSelecionados((prev) =>
+                prev.includes("Desistiu")
+                  ? prev.filter((s) => s !== "Desistiu")
+                  : [...prev, "Desistiu"]
+              );
+            }}
+          >
+            Desistiu
+          </button>
+        </div>
+
         <select value={modo} onChange={(e) => setModo(e.target.value)}>
           <option value="cards">Cards</option>
           <option value="lista">Lista</option>
@@ -343,6 +423,16 @@ export default function Livros() {
                   placeholder="Nacionalidade"
                 />
               </label>
+              <label style={{ gridColumn: "1 / -1" }}>
+                Sinopse
+                <textarea
+                  value={formLivro.sinopse}
+                  onChange={(e) => setFormLivro((prev) => ({ ...prev, sinopse: e.target.value }))}
+                  placeholder="Escreva a sinopse do livro"
+                  rows={4}
+                  style={{ resize: "vertical", minHeight: "100px", padding: "10px 12px", borderRadius: "12px", border: "1px solid #dfd1ba", fontFamily: "inherit", fontSize: "14px", color: "#3f311f", backgroundColor: "#fff" }}
+                />
+              </label>
               <label>
                 Editora
                 <input
@@ -381,48 +471,57 @@ export default function Livros() {
 
       {modo === "cards" && (
         <div className="livros-grid">
-          {livrosFiltrados.map((livro) => (
-            <article
-              key={livro.id}
-              className="livro-card"
-              style={{ "--livro-accent": getCorGenero(livro.genero) }}
-            >
-              <div className="livro-card-header">
-                <p className="livro-genero">{livro.genero}</p>
-                <button 
-                  className="btn-add-estante" 
-                  onClick={(e) => adicionarAEstante(livro, e)}
-                  title={user ? "Salvar na Estante" : "Faça login para adicionar à estante"}
-                  disabled={!user}
-                >
-                  <img src={estanteIcon} alt="Salvar na Estante" />
-                </button>
-              </div>
-              <h3>{livro.titulo}</h3>
-              <p className="livro-autor">{getAutorNome(livro) || ""}{getAutorNome(livro) && livro.nacionalidade ? " • " : ""}{livro.nacionalidade || ""}</p>
-              <div className="livro-meta">
-                <p>{livro.editora?.substring(0, 30) || ""}{livro.editora && livro.ano ? " • " : ""}{livro.ano ? String(livro.ano).substring(0, 4) : ""}</p>
-              </div>
-              {isBibliotecario && (
-                <div className="livro-card-actions">
-                  <button
-                    type="button"
-                    className="btn-delete"
-                    onClick={() => abrirEditarLivro(livro)}
+          {livrosFiltrados.map((livro) => {
+            const aberto = expandedLivroId === livro.id;
+            return (
+              <article
+                key={livro.id}
+                className={`livro-card${aberto ? " expanded" : ""}`}
+                style={{ "--livro-accent": getCorGenero(livro.genero) }}
+              >
+                <div className="livro-card-header">
+                  <p className="livro-genero">{livro.genero}</p>
+                  <button 
+                    className="btn-add-estante" 
+                    onClick={(e) => adicionarAEstante(livro, e)}
+                    title={user ? "Salvar na Estante" : "Faça login para adicionar à estante"}
+                    disabled={!user}
                   >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-delete"
-                    onClick={() => excluirLivro(livro)}
-                  >
-                    Excluir
+                    <img src={estanteIcon} alt="Salvar na Estante" />
                   </button>
                 </div>
-              )}
-            </article>
-          ))}
+                <div
+                  className="livro-card-clickable"
+                  onClick={() => navigate(`/livro/${livro.id}`)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <h3>{livro.titulo}</h3>
+                  <p className="livro-autor">{getAutorNome(livro) || ""}{getAutorNome(livro) && livro.nacionalidade ? " • " : ""}{livro.nacionalidade || ""}</p>
+                  <div className="livro-meta">
+                    <p>{livro.editora?.substring(0, 30) || ""}{livro.editora && livro.ano ? " • " : ""}{livro.ano ? String(livro.ano).substring(0, 4) : ""}</p>
+                  </div>
+                </div>
+                {isBibliotecario && (
+                  <div className="livro-card-actions">
+                    <button
+                      type="button"
+                      className="btn-delete"
+                      onClick={(e) => { e.stopPropagation(); abrirEditarLivro(livro); }}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-delete"
+                      onClick={(e) => { e.stopPropagation(); excluirLivro(livro); }}
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                )}
+              </article>
+            );
+          })}
         </div>
       )}
 

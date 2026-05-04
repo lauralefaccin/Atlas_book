@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAutores } from "../data/autores";
 import "./Livros.css";
 import {
@@ -28,6 +29,8 @@ export default function Generos() {
   const [editandoGenero, setEditandoGenero] = useState(null);
   const [formGenero, setFormGenero] = useState(initialGeneroForm);
   const [selectedGenero, setSelectedGenero] = useState(null);
+  const [expandedLivroId, setExpandedLivroId] = useState(null);
+  const navigate = useNavigate();
 
   const autores = useAutores();
   const autoresMap = useMemo(
@@ -347,27 +350,40 @@ export default function Generos() {
 
           {livrosFiltradosPorBusca.length > 0 ? (
             <div className="livros-grid">
-              {livrosFiltradosPorBusca.map((livro) => (
-                <article key={livro.id} className="livro-card" style={{ "--livro-accent": getCorGenero(livro.genero) }}>
-                  <div className="livro-card-header">
-                    <p className="livro-genero">{livro.genero}</p>
-                    <button
-                      type="button"
-                      className="btn-add-estante"
-                      onClick={(e) => adicionarAEstante(livro, e)}
-                      title={user ? "Salvar na Estante" : "Faça login para adicionar à estante"}
-                      disabled={!user || estanteIds.includes(livro.id)}
+              {livrosFiltradosPorBusca.map((livro) => {
+                const aberto = expandedLivroId === livro.id;
+                return (
+                  <article
+                    key={livro.id}
+                    className={`livro-card${aberto ? " expanded" : ""}`}
+                    style={{ "--livro-accent": getCorGenero(livro.genero) }}
+                  >
+                    <div className="livro-card-header">
+                      <p className="livro-genero">{livro.genero}</p>
+                      <button
+                        type="button"
+                        className="btn-add-estante"
+                        onClick={(e) => adicionarAEstante(livro, e)}
+                        title={user ? "Salvar na Estante" : "Faça login para adicionar à estante"}
+                        disabled={!user || estanteIds.includes(livro.id)}
+                      >
+                        <img src={estanteIcon} alt="Salvar na Estante" />
+                      </button>
+                    </div>
+                    <div
+                      className="livro-card-clickable"
+                      onClick={() => navigate(`/livro/${livro.id}`)}
+                      style={{ cursor: "pointer" }}
                     >
-                      <img src={estanteIcon} alt="Salvar na Estante" />
-                    </button>
-                  </div>
-                  <h3>{livro.titulo}</h3>
-                  <p className="livro-autor">{autoresMap[livro.autorId] || livro.autor || "Autor não informado"} • {livro.nacionalidade}</p>
-                  <div className="livro-meta">
-                    <p>{livro.editora} • {livro.ano}</p>
-                  </div>
-                </article>
-              ))}
+                      <h3>{livro.titulo}</h3>
+                      <p className="livro-autor">{autoresMap[livro.autorId] || livro.autor || "Autor não informado"} • {livro.nacionalidade}</p>
+                      <div className="livro-meta">
+                        <p>{livro.editora} • {livro.ano}</p>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           ) : (
             <div className="livros-vazio">Nenhum livro encontrado para este gênero.</div>

@@ -1,7 +1,10 @@
 import pool from "./pool.js";
 import bcrypt from "bcrypt";
+import { fileURLToPath } from "url";
 
-async function init() {
+const __filename = fileURLToPath(import.meta.url);
+
+export async function initDatabase({ closePool = true } = {}) {
   const client = await pool.connect();
 
   try {
@@ -25,6 +28,7 @@ async function init() {
         nacionalidade VARCHAR(100),
         editora       VARCHAR(150),
         ano           INTEGER,
+        sinopse       TEXT,
         exemplares    INTEGER NOT NULL DEFAULT 1,
         isbn          VARCHAR(30),
         genero        VARCHAR(100),
@@ -58,6 +62,7 @@ async function init() {
         usuario_id    INTEGER NOT NULL,
         usuario_tipo  VARCHAR(20) NOT NULL DEFAULT 'leitor',
         livro_id      INTEGER NOT NULL REFERENCES livros(id) ON DELETE CASCADE,
+        status        VARCHAR(50) NOT NULL DEFAULT 'Pretendo Ler',
         adicionado_em TIMESTAMP DEFAULT NOW(),
         UNIQUE(usuario_tipo, usuario_id, livro_id)
       );
@@ -66,6 +71,15 @@ async function init() {
     await client.query(`
       ALTER TABLE estante
       DROP COLUMN IF EXISTS leitor_id;
+    `);
+    await client.query(`
+      ALTER TABLE estante
+      ADD COLUMN IF NOT EXISTS status VARCHAR(50) NOT NULL DEFAULT 'Pretendo Ler';
+    `);
+
+    await client.query(`
+      ALTER TABLE livros
+      ADD COLUMN IF NOT EXISTS sinopse TEXT;
     `);
 
     await client.query(`
@@ -151,8 +165,13 @@ async function init() {
     console.error("❌ Erro ao inicializar banco:", err.message);
   } finally {
     client.release();
-    await pool.end();
+    if (closePool) {
+      await pool.end();
+    }
   }
 }
 
-init();
+if (process.argv[1] === __filename) {
+  await initDatabase();
+  process.exit();
+}

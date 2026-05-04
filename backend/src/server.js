@@ -7,6 +7,7 @@ import leitoresRoutes   from "./routes/leitores.js";
 import usuariosRoutes   from "./routes/usuarios.js";
 import livrosRoutes     from "./routes/livros.js";
 import estanteRoutes    from "./routes/estante.js";
+import { initDatabase } from "./db/init.js";
 
 dotenv.config();
 
@@ -28,6 +29,14 @@ app.use("/api/estante",  estanteRoutes);
 app.get("/api/health", (_, res) => res.json({ status: "ok" }));
 
 // ── Start ─────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`🚀 AtlasBook API rodando em http://localhost:${PORT}`);
+async function startServer() {
+  await initDatabase({ closePool: false });
+  app.listen(PORT, () => {
+    console.log(`🚀 AtlasBook API rodando em http://localhost:${PORT}`);
+  });
+}
+
+startServer().catch((err) => {
+  console.error("Erro ao iniciar servidor:", err);
+  process.exit(1);
 });

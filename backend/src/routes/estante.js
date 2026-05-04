@@ -13,7 +13,7 @@ router.get("/", async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT l.*, e.adicionado_em
+      `SELECT l.*, e.adicionado_em, e.status
        FROM estante e
        JOIN livros l ON l.id = e.livro_id
        WHERE e.usuario_id = $1 AND e.usuario_tipo = $2
@@ -32,24 +32,64 @@ router.post("/:livroId", async (req, res) => {
   const usuarioId = req.user.id;
   const usuarioTipo = req.user.tipo;
   const { livroId } = req.params;
+  const { status = "Pretendo Ler" } = req.body;
   const livroIdNumber = Number(livroId);
-  const leitorId = usuarioTipo === "leitor" ? usuarioId : null;
+  const validStatuses = ["Favoritos", "Lendo", "Pretendo Ler", "Finalizado", "Desistiu"];
 
   if (!Number.isInteger(livroIdNumber) || livroIdNumber <= 0) {
     return res.status(400).json({ erro: "ID do livro inválido." });
   }
 
+  if (typeof status !== "string" || !validStatuses.includes(status)) {
+    return res.status(400).json({ erro: "Status inválido para a estante." });
+  }
+
   try {
     await pool.query(
-      `INSERT INTO estante (usuario_id, usuario_tipo, livro_id)
-       VALUES ($1, $2, $3)
+      `INSERT INTO estante (usuario_id, usuario_tipo, livro_id, status)
+       VALUES ($1, $2, $3, $4)
        ON CONFLICT (usuario_tipo, usuario_id, livro_id) DO NOTHING`,
-      [usuarioId, usuarioTipo, livroIdNumber]
+      [usuarioId, usuarioTipo, livroIdNumber, status]
     );
     return res.status(201).json({ mensagem: "Livro adicionado à estante." });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: "Erro ao adicionar à estante." });
+  }
+});
+
+router.patch("/:livroId", async (req, res) => {
+  const usuarioId = req.user.id;
+  const usuarioTipo = req.user.tipo;
+  const { livroId } = req.params;
+  const { status } = req.body;
+  const livroIdNumber = Number(livroId);
+  const validStatuses = ["Favoritos", "Lendo", "Pretendo Ler", "Finalizado", "Desistiu"];
+
+  if (!Number.isInteger(livroIdNumber) || livroIdNumber <= 0) {
+    return res.status(400).json({ erro: "ID do livro inválido." });
+  }
+
+  if (typeof status !== "string" || !validStatuses.includes(status)) {
+    return res.status(400).json({ erro: "Status inválido para a estante." });
+  }
+
+  try {
+    const { rowCount } = await pool.query(
+      `UPDATE estante
+       SET status = $1
+       WHERE usuario_id = $2 AND usuario_tipo = $3 AND livro_id = $4`,
+      [status, usuarioId, usuarioTipo, livroIdNumber]
+    );
+
+    if (rowCount === 0) {
+      return res.status(404).json({ erro: "Livro não encontrado na estante." });
+    }
+
+    return res.json({ mensagem: "Status da estante atualizado." });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: "Erro ao atualizar status da estante." });
   }
 });
 
