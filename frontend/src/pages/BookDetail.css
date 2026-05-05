@@ -4,6 +4,12 @@
   padding: 20px;
 }
 
+.book-detail-shell {
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+}
+
 .book-detail-back {
   background: none;
   border: 1px solid #d9cfc0;
@@ -30,6 +36,7 @@
   border-radius: 16px;
   box-shadow: 0 12px 32px rgba(44, 31, 18, 0.12);
   overflow: hidden;
+  position: relative;
 }
 
 .book-detail-header {
@@ -39,6 +46,39 @@
   padding: 48px 32px;
   text-align: center;
   position: relative;
+}
+
+.book-detail-favorite-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: auto;
+  height: auto;
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  backdrop-filter: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.book-detail-favorite-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+.book-detail-favorite-btn.active {
+  background: transparent;
+  border: none;
+}
+
+.book-detail-favorite-btn img {
+  width: 18px;
+  height: 18px;
 }
 
 .book-detail-header::before {
@@ -258,3 +298,20 @@
     grid-template-columns: 1fr;
   }
 }
+
+.book-detail-estante-bar {
+  margin: 14px auto 0;
+  padding: 0 24px;
+  width: calc(100% - 48px);
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.book-detail-estante-bar .livros-status-filter {
+  width: 100%;
+  justify-content: center;
+}
+

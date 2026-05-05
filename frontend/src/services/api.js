@@ -54,5 +54,6 @@ export const api = {
   getEstante:             ()  => req("GET",    "/estante"),
   adicionarEstante:       (livroId) => req("POST",   `/estante/${livroId}`),
   atualizarStatusEstante: (livroId, status) => req("PATCH", `/estante/${livroId}`, { status }),
+  toggleFavoritoEstante:  (livroId) => req("PATCH", `/estante/${livroId}/favorito`),
   removerEstante:         (livroId) => req("DELETE",  `/estante/${livroId}`),
 };

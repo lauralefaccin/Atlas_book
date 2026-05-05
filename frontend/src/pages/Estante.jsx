@@ -1,21 +1,24 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { getGeneroColor, useGeneros } from "../data/generos";
 import "./Livros.css"; // Reaproveitando os estilos
 import { api } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { usePopup } from "../context/PopupContext";
 import lixeiraIcon from "../imagens/icons/lixeira.png";
-import estrelaIcon from "../imagens/icons/estrela.png";
+import estrelVazadaIcon from "../imagens/icons/estrela_vazada.png";
+import estrelaCheiaIcon from "../imagens/icons/estrela (2).png";
 
-const ALL_STATUS_FILTER = "Todos os Livros";
-const STATUS_OPTIONS = ["Favoritos", "Lendo", "Pretendo Ler", "Finalizado", "Desistiu"];
-const STATUS_FILTER_OPTIONS = [ALL_STATUS_FILTER, ...STATUS_OPTIONS];
+const ALL_STATUS_FILTER = "Todos";
+const STATUS_OPTIONS = ["Lendo", "Pretendo Ler", "Finalizado", "Desistiu"];
 
 export default function Estante() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [livrosEstante, setLivrosEstante] = useState([]);
   const [statusFilter, setStatusFilter] = useState(ALL_STATUS_FILTER);
-  const [activeMenuId, setActiveMenuId] = useState(null);
+  const [showOnlyFavoritos, setShowOnlyFavoritos] = useState(false);
+  
   const generos = useGeneros();
   const { showPopup, showConfirmPopup } = usePopup();
 
@@ -55,7 +58,6 @@ export default function Estante() {
       setLivrosEstante((current) =>
         current.map((livro) => (livro.id === id ? { ...livro, status: novoStatus } : livro))
       );
-      setActiveMenuId(null);
       showPopup(`Livro movido para "${novoStatus}".`);
       window.dispatchEvent(new CustomEvent("estante:changed"));
     } catch (err) {
@@ -65,8 +67,19 @@ export default function Estante() {
   };
 
   const toggleFavorito = async (livro) => {
-    const novaStatus = livro.status === "Favoritos" ? "Pretendo Ler" : "Favoritos";
-    await atualizarStatus(livro.id, novaStatus);
+    try {
+      await api.toggleFavoritoEstante(livro.id);
+      setLivrosEstante((current) =>
+        current.map((l) => 
+          l.id === livro.id ? { ...l, is_favorito: !l.is_favorito } : l
+        )
+      );
+      const mensagem = livro.is_favorito ? "Removido dos favoritos." : "Adicionado aos favoritos.";
+      showPopup(mensagem);
+    } catch (err) {
+      console.error("Erro ao atualizar favorito:", err.message);
+      showPopup("Não foi possível atualizar o status de favorito.");
+    }
   };
 
   const removerDaEstante = async (id) => {
@@ -87,7 +100,9 @@ export default function Estante() {
 
   const livrosFiltrados = livrosEstante.filter((livro) => {
     const status = livro.status || "Pretendo Ler";
-    return statusFilter === ALL_STATUS_FILTER || status === statusFilter;
+    const passaFiltroStatus = statusFilter === ALL_STATUS_FILTER || status === statusFilter;
+    const passaFiltrFavorito = !showOnlyFavoritos || livro.is_favorito === true;
+    return passaFiltroStatus && passaFiltrFavorito;
   });
 
   return (
@@ -100,17 +115,33 @@ export default function Estante() {
       </header>
 
       <div className="livros-filters estante-filters">
-        <label>
-          Visualizar:
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+        <div className="livros-status-filter estante-status-filter">
+          <button
+            type="button"
+            className={`status-filter-btn ${statusFilter === ALL_STATUS_FILTER ? "active" : ""}`}
+            onClick={() => setStatusFilter(ALL_STATUS_FILTER)}
           >
-            {STATUS_FILTER_OPTIONS.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        </label>
+            Todos
+          </button>
+          {STATUS_OPTIONS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={`status-filter-btn ${statusFilter === option ? "active" : ""}`}
+              onClick={() => setStatusFilter(option)}
+            >
+              {option}
+            </button>
+          ))}
+          <button
+            type="button"
+            className={`status-filter-btn ${showOnlyFavoritos ? "active" : ""}`}
+            onClick={() => setShowOnlyFavoritos(!showOnlyFavoritos)}
+            title="Mostrar apenas livros favoritos"
+          >
+             Favoritos
+          </button>
+        </div>
       </div>
 
       {livrosFiltrados.length === 0 ? (
@@ -123,7 +154,7 @@ export default function Estante() {
         <div className="livros-grid">
           {livrosFiltrados.map((livro) => {
             const status = livro.status || "Pretendo Ler";
-            const isFavorito = status === "Favoritos";
+            const isFavorito = livro.is_favorito === true;
 
             return (
               <article
@@ -137,50 +168,33 @@ export default function Estante() {
                     <button
                       className={`btn-action-small btn-favorite ${isFavorito ? "active" : ""}`}
                       type="button"
-                      onClick={() => toggleFavorito(livro)}
+                      onClick={(e) => { e.stopPropagation(); toggleFavorito(livro); }}
                       title={isFavorito ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                     >
-                      <img src={estrelaIcon} alt="Favoritos" />
+                      <img src={isFavorito ? estrelaCheiaIcon : estrelVazadaIcon} alt="Favoritos" />
                     </button>
-                    <button className="btn-delete" onClick={() => removerDaEstante(livro.id)}>
+                    <button className="btn-delete" onClick={(e) => { e.stopPropagation(); removerDaEstante(livro.id); }}>
                       <img src={lixeiraIcon} alt="Remover da estante" />
                     </button>
                   </div>
                 </div>
-                <h3>{livro.titulo}</h3>
-                <p className="livro-autor">{livro.autor}</p>
+                <div
+                  className="livro-card-clickable"
+                  onClick={(e) => { e.stopPropagation(); navigate(`/livro/${livro.id}`, { state: { fromEstante: true } }); }}
+                  style={{ cursor: "pointer" }}
+                >
+                  <h3>{livro.titulo}</h3>
+                  <p className="livro-autor">{livro.autor}</p>
+                </div>
 
                 <div className="livro-status-bar">
                   <span className={`livro-status-tag ${status.toLowerCase().replace(/\s+/g, "-")}`}>
                     {status}
                   </span>
-                  <div className="status-menu-wrapper">
-                    <button
-                      className="btn-status-toggle"
-                      type="button"
-                      onClick={() => setActiveMenuId((current) => (current === livro.id ? null : livro.id))}
-                    >
-                      {activeMenuId === livro.id ? "Fechar" : "Mudar subdivisão"}
-                    </button>
-                    {activeMenuId === livro.id && (
-                      <div className="status-menu">
-                        {STATUS_OPTIONS.map((option) => (
-                          <button
-                            key={option}
-                            type="button"
-                            className={option === status ? "active" : ""}
-                            onClick={() => atualizarStatus(livro.id, option)}
-                          >
-                            {option}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
 
                 <div className="livro-meta">
-                  <button className="btn-ler" onClick={() => showPopup("Abrindo leitor...")}> 
+                  <button className="btn-ler" onClick={(e) => { e.stopPropagation(); navigate(`/livro/${livro.id}`, { state: { fromEstante: true } }); }}>
                     Ler Livro
                   </button>
                 </div>
@@ -189,6 +203,8 @@ export default function Estante() {
           })}
         </div>
       )}
+
+      
     </section>
   );
 }

@@ -46,29 +46,20 @@ export default function Livros() {
   const [formAberto, setFormAberto] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [expandedLivroId, setExpandedLivroId] = useState(null);
-  const [estanteStatus, setEstanteStatus] = useState({});
-  const [statusSelecionados, setStatusSelecionados] = useState([]);
 
   useEffect(() => {
     async function loadEstante() {
       if (!user) {
         setEstanteIds([]);
-        setEstanteStatus({});
         return;
       }
 
       try {
         const estante = await api.getEstante();
         setEstanteIds(estante.map((livro) => livro.id));
-        const statusMap = {};
-        estante.forEach((livro) => {
-          statusMap[livro.id] = livro.status;
-        });
-        setEstanteStatus(statusMap);
       } catch (err) {
         console.error("Erro ao carregar estante:", err.message);
         setEstanteIds([]);
-        setEstanteStatus({});
       }
     }
 
@@ -141,21 +132,13 @@ export default function Livros() {
     return acervo.filter((livro) => {
       const atendeGenero = genero === "Todos os gêneros" || livro.genero === genero;
       if (!atendeGenero) return false;
-      
-      // Filtro de status
-      if (statusSelecionados.length > 0) {
-        const livroStatus = estanteStatus[livro.id];
-        if (!livroStatus || !statusSelecionados.includes(livroStatus)) {
-          return false;
-        }
-      }
-      
+
       if (!termo) return true;
       const autorNome = getAutorNome(livro);
       const alvoBusca = `${livro.titulo} ${autorNome}`.toLowerCase();
       return alvoBusca.includes(termo);
     });
-  }, [busca, genero, acervo, autoresMap, statusSelecionados, estanteStatus]);
+  }, [busca, genero, acervo, autoresMap]);
 
   // FUNÇÃO PARA SALVAR NA ESTANTE
   const adicionarAEstante = async (livro, e) => {
@@ -304,63 +287,6 @@ export default function Livros() {
             <option key={item} value={item}>{item}</option>
           ))}
         </select>
-
-        <div className="livros-status-filter">
-          <button
-            className={`status-filter-btn ${statusSelecionados.length === 0 ? "active" : ""}`}
-            onClick={() => setStatusSelecionados([])}
-          >
-            Todos
-          </button>
-          <button
-            className={`status-filter-btn ${statusSelecionados.includes("Pretendo Ler") ? "active" : ""}`}
-            onClick={() => {
-              setStatusSelecionados((prev) =>
-                prev.includes("Pretendo Ler")
-                  ? prev.filter((s) => s !== "Pretendo Ler")
-                  : [...prev, "Pretendo Ler"]
-              );
-            }}
-          >
-            Pretendo Ler
-          </button>
-          <button
-            className={`status-filter-btn ${statusSelecionados.includes("Lendo") ? "active" : ""}`}
-            onClick={() => {
-              setStatusSelecionados((prev) =>
-                prev.includes("Lendo")
-                  ? prev.filter((s) => s !== "Lendo")
-                  : [...prev, "Lendo"]
-              );
-            }}
-          >
-            Lendo
-          </button>
-          <button
-            className={`status-filter-btn ${statusSelecionados.includes("Finalizado") ? "active" : ""}`}
-            onClick={() => {
-              setStatusSelecionados((prev) =>
-                prev.includes("Finalizado")
-                  ? prev.filter((s) => s !== "Finalizado")
-                  : [...prev, "Finalizado"]
-              );
-            }}
-          >
-            Finalizado
-          </button>
-          <button
-            className={`status-filter-btn ${statusSelecionados.includes("Desistiu") ? "active" : ""}`}
-            onClick={() => {
-              setStatusSelecionados((prev) =>
-                prev.includes("Desistiu")
-                  ? prev.filter((s) => s !== "Desistiu")
-                  : [...prev, "Desistiu"]
-              );
-            }}
-          >
-            Desistiu
-          </button>
-        </div>
 
         <select value={modo} onChange={(e) => setModo(e.target.value)}>
           <option value="cards">Cards</option>

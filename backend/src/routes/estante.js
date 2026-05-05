@@ -13,7 +13,7 @@ router.get("/", async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT l.*, e.adicionado_em, e.status
+      `SELECT l.*, e.adicionado_em, e.status, e.is_favorito
        FROM estante e
        JOIN livros l ON l.id = e.livro_id
        WHERE e.usuario_id = $1 AND e.usuario_tipo = $2
@@ -34,7 +34,7 @@ router.post("/:livroId", async (req, res) => {
   const { livroId } = req.params;
   const { status = "Pretendo Ler" } = req.body;
   const livroIdNumber = Number(livroId);
-  const validStatuses = ["Favoritos", "Lendo", "Pretendo Ler", "Finalizado", "Desistiu"];
+  const validStatuses = ["Lendo", "Pretendo Ler", "Finalizado", "Desistiu"];
 
   if (!Number.isInteger(livroIdNumber) || livroIdNumber <= 0) {
     return res.status(400).json({ erro: "ID do livro inválido." });
@@ -64,7 +64,7 @@ router.patch("/:livroId", async (req, res) => {
   const { livroId } = req.params;
   const { status } = req.body;
   const livroIdNumber = Number(livroId);
-  const validStatuses = ["Favoritos", "Lendo", "Pretendo Ler", "Finalizado", "Desistiu"];
+  const validStatuses = ["Lendo", "Pretendo Ler", "Finalizado", "Desistiu"];
 
   if (!Number.isInteger(livroIdNumber) || livroIdNumber <= 0) {
     return res.status(400).json({ erro: "ID do livro inválido." });
@@ -90,6 +90,48 @@ router.patch("/:livroId", async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ erro: "Erro ao atualizar status da estante." });
+  }
+});
+
+// PATCH /api/estante/:livroId/favorito — alterna o status de favorito
+router.patch("/:livroId/favorito", async (req, res) => {
+  const usuarioId = req.user.id;
+  const usuarioTipo = req.user.tipo;
+  const { livroId } = req.params;
+  const livroIdNumber = Number(livroId);
+
+  if (!Number.isInteger(livroIdNumber) || livroIdNumber <= 0) {
+    return res.status(400).json({ erro: "ID do livro inválido." });
+  }
+
+  try {
+    // Primeiro obtém o estado atual
+    const { rows } = await pool.query(
+      `SELECT is_favorito FROM estante
+       WHERE usuario_id = $1 AND usuario_tipo = $2 AND livro_id = $3`,
+      [usuarioId, usuarioTipo, livroIdNumber]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ erro: "Livro não encontrado na estante." });
+    }
+
+    const novoEstadoFavorito = !rows[0].is_favorito;
+
+    await pool.query(
+      `UPDATE estante
+       SET is_favorito = $1
+       WHERE usuario_id = $2 AND usuario_tipo = $3 AND livro_id = $4`,
+      [novoEstadoFavorito, usuarioId, usuarioTipo, livroIdNumber]
+    );
+
+    return res.json({ 
+      mensagem: novoEstadoFavorito ? "Adicionado aos favoritos." : "Removido dos favoritos.",
+      is_favorito: novoEstadoFavorito
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: "Erro ao atualizar favorito." });
   }
 });
 

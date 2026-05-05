@@ -63,6 +63,7 @@ export async function initDatabase({ closePool = true } = {}) {
         usuario_tipo  VARCHAR(20) NOT NULL DEFAULT 'leitor',
         livro_id      INTEGER NOT NULL REFERENCES livros(id) ON DELETE CASCADE,
         status        VARCHAR(50) NOT NULL DEFAULT 'Pretendo Ler',
+        is_favorito   BOOLEAN NOT NULL DEFAULT FALSE,
         adicionado_em TIMESTAMP DEFAULT NOW(),
         UNIQUE(usuario_tipo, usuario_id, livro_id)
       );
@@ -70,8 +71,9 @@ export async function initDatabase({ closePool = true } = {}) {
 
     await client.query(`
       ALTER TABLE estante
-      DROP COLUMN IF EXISTS leitor_id;
+      ADD COLUMN IF NOT EXISTS is_favorito BOOLEAN NOT NULL DEFAULT FALSE;
     `);
+
     await client.query(`
       ALTER TABLE estante
       ADD COLUMN IF NOT EXISTS status VARCHAR(50) NOT NULL DEFAULT 'Pretendo Ler';
