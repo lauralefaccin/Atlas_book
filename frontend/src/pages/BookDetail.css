@@ -46,6 +46,7 @@
   padding: 48px 32px;
   text-align: center;
   position: relative;
+  overflow: hidden;
 }
 
 .book-detail-favorite-btn {
@@ -96,6 +97,7 @@
   position: relative;
   z-index: 1;
   margin-bottom: 16px;
+  min-width: 0;
 }
 
 .book-genre {
@@ -118,6 +120,10 @@
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   position: relative;
   z-index: 1;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .book-detail-author {
@@ -127,6 +133,10 @@
   opacity: 0.95;
   position: relative;
   z-index: 1;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .book-detail-nationality {
@@ -135,6 +145,10 @@
   margin: 4px 0 16px;
   position: relative;
   z-index: 1;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .book-detail-publication {
@@ -146,11 +160,16 @@
   margin: 16px 0 24px;
   position: relative;
   z-index: 1;
+  flex-wrap: wrap;
 }
 
 .book-detail-publication span {
   display: inline-block;
   padding: 0 8px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .book-detail-publication span:not(:last-child) {
@@ -235,6 +254,7 @@
   background: #f7f3ed;
   border-radius: 12px;
   border-left: 4px solid #c08928;
+  min-width: 0;
 }
 
 .book-info-label {
@@ -249,6 +269,9 @@
   font-size: 18px;
   color: #3f311f;
   font-weight: 500;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .book-detail-loading {

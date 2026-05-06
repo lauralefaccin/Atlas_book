@@ -3,6 +3,9 @@ import pool from "../db/pool.js";
 import { authMiddleware, soBibliotecario } from "../middlewares/auth.js";
 
 const router = Router();
+const TITULO_MAX_LENGTH = 60;
+const SINOPSE_MAX_LENGTH = 3000;
+const NACIONALIDADE_MAX_LENGTH = 60;
 
 // GET /api/livros — público (leitores e bibliotecários)
 router.get("/", authMiddleware, async (req, res) => {
@@ -25,6 +28,18 @@ router.post("/", authMiddleware, soBibliotecario, async (req, res) => {
     return res.status(400).json({ erro: "titulo e autor são obrigatórios." });
   }
 
+  if (titulo && titulo.length > TITULO_MAX_LENGTH) {
+    return res.status(400).json({ erro: `O título deve ter no máximo ${TITULO_MAX_LENGTH} caracteres.` });
+  }
+
+  if (sinopse && sinopse.length > SINOPSE_MAX_LENGTH) {
+    return res.status(400).json({ erro: `A sinopse deve ter no máximo ${SINOPSE_MAX_LENGTH} caracteres.` });
+  }
+
+  if (nacionalidade && nacionalidade.length > NACIONALIDADE_MAX_LENGTH) {
+    return res.status(400).json({ erro: `A nacionalidade deve ter no máximo ${NACIONALIDADE_MAX_LENGTH} caracteres.` });
+  }
+
   try {
     const { rows } = await pool.query(
       `INSERT INTO livros (titulo, autor, nacionalidade, editora, ano, sinopse, exemplares, isbn, genero)
@@ -44,6 +59,18 @@ router.post("/", authMiddleware, soBibliotecario, async (req, res) => {
 router.put("/:id", authMiddleware, soBibliotecario, async (req, res) => {
   const { id } = req.params;
   const { titulo, autor, nacionalidade, editora, ano, sinopse, exemplares, isbn, genero } = req.body;
+
+  if (sinopse && sinopse.length > SINOPSE_MAX_LENGTH) {
+    return res.status(400).json({ erro: `A sinopse deve ter no máximo ${SINOPSE_MAX_LENGTH} caracteres.` });
+  }
+
+  if (titulo && titulo.length > TITULO_MAX_LENGTH) {
+    return res.status(400).json({ erro: `O título deve ter no máximo ${TITULO_MAX_LENGTH} caracteres.` });
+  }
+
+  if (nacionalidade && nacionalidade.length > NACIONALIDADE_MAX_LENGTH) {
+    return res.status(400).json({ erro: `A nacionalidade deve ter no máximo ${NACIONALIDADE_MAX_LENGTH} caracteres.` });
+  }
 
   try {
     const { rows } = await pool.query(

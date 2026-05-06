@@ -9,6 +9,9 @@ import { api } from "../services/api";
 import estanteIcon from "../imagens/icons/estante (2).png";
 
 export default function Livros() {
+  const TITULO_MAX_LENGTH = 60;
+  const SINOPSE_MAX_LENGTH = 3000;
+  const NACIONALIDADE_MAX_LENGTH = 60;
   const autores = useAutores();
   const generos = useGeneros();
   const [busca, setBusca] = useState("");
@@ -23,7 +26,15 @@ export default function Livros() {
     const g = params.get("genero");
     if (g) setGenero(g);
   }, [location.search]);
-  const [modo, setModo] = useState("cards");
+  
+  const [modo, setModo] = useState(() => {
+    const saved = localStorage.getItem("livrosModo");
+    return saved || "cards";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("livrosModo", modo);
+  }, [modo]);
 
   const { user } = useAuth();
   const isBibliotecario = user?.tipo === "bibliotecario";
@@ -288,10 +299,24 @@ export default function Livros() {
           ))}
         </select>
 
-        <select value={modo} onChange={(e) => setModo(e.target.value)}>
-          <option value="cards">Cards</option>
-          <option value="lista">Lista</option>
-        </select>
+        <div className="modo-toggle">
+          <button
+            type="button"
+            className={`modo-toggle-btn ${modo === "cards" ? "active" : ""}`}
+            onClick={() => setModo("cards")}
+            title="Visualizar em cards"
+          >
+            Cards
+          </button>
+          <button
+            type="button"
+            className={`modo-toggle-btn ${modo === "lista" ? "active" : ""}`}
+            onClick={() => setModo("lista")}
+            title="Visualizar em lista"
+          >
+            Lista
+          </button>
+        </div>
       </div>
 
       {formAberto && (
@@ -316,6 +341,7 @@ export default function Livros() {
                 <input
                   value={formLivro.titulo}
                   onChange={(e) => setFormLivro((prev) => ({ ...prev, titulo: e.target.value }))}
+                  maxLength={TITULO_MAX_LENGTH}
                   placeholder="Título do livro"
                 />
               </label>
@@ -346,6 +372,7 @@ export default function Livros() {
                 <input
                   value={formLivro.nacionalidade}
                   onChange={(e) => setFormLivro((prev) => ({ ...prev, nacionalidade: e.target.value }))}
+                  maxLength={NACIONALIDADE_MAX_LENGTH}
                   placeholder="Nacionalidade"
                 />
               </label>
@@ -354,6 +381,7 @@ export default function Livros() {
                 <textarea
                   value={formLivro.sinopse}
                   onChange={(e) => setFormLivro((prev) => ({ ...prev, sinopse: e.target.value }))}
+                  maxLength={SINOPSE_MAX_LENGTH}
                   placeholder="Escreva a sinopse do livro"
                   rows={4}
                   style={{ resize: "vertical", minHeight: "100px", padding: "10px 12px", borderRadius: "12px", border: "1px solid #dfd1ba", fontFamily: "inherit", fontSize: "14px", color: "#3f311f", backgroundColor: "#fff" }}
@@ -460,9 +488,8 @@ export default function Livros() {
               style={{ "--livro-accent": getCorGenero(livro.genero) }}
             >
               <div>
-                <p className="livro-genero">{livro.genero}</p>
                 <h3>{livro.titulo}</h3>
-                <p className="livro-autor">{getAutorNome(livro) || ""}</p>
+                <p className="livro-autor">{getAutorNome(livro) || ""}{getAutorNome(livro) && livro.nacionalidade ? " • " : ""}{livro.nacionalidade || ""}</p>
                 <p className="livro-meta-row">{livro.editora?.substring(0, 30) || ""}{livro.editora && livro.ano ? " • " : ""}{livro.ano ? String(livro.ano).substring(0, 4) : ""}</p>
                 {isBibliotecario && (
                   <div className="livro-row-actions">

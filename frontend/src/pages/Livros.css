@@ -218,12 +218,54 @@
 
 .livros-filters select {
   border: 1px solid #dfd1ba;
-  border-radius: 12px;
+  border-radius: 8px;
   background: #fff;
   color: #3f311f;
   min-width: 150px;
-  padding: 0 12px;
+  padding: 8px 14px;
   font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.livros-filters select:focus,
+.livros-filters select:active {
+  outline: none;
+  border-color: #c08928;
+  box-shadow: 0 0 0 4px rgba(192,137,40,0.06);
+}
+
+.modo-toggle {
+  display: inline-flex;
+  gap: 0;
+  background: #fff;
+  border: 1px solid #dfd1ba;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.modo-toggle-btn {
+  background: #fff;
+  border: none;
+  color: #6f5f49;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+}
+
+.modo-toggle-btn.active {
+  background: #c08928;
+  color: #000;
+}
+
+.modo-toggle-btn:hover:not(.active) {
+  background: #f5efe7;
 }
 
 .livros-grid {
@@ -246,6 +288,7 @@
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .livro-card.expanded {
@@ -261,6 +304,8 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  width: 100%;
 }
 
 .livro-card-clickable:hover h3 {
@@ -427,6 +472,7 @@
   font-family: Georgia, "Times New Roman", serif;
   font-size: 19px;
   color: #21170f;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -436,9 +482,9 @@
   margin: 6px 0 0;
   font-size: 13px;
   color: #7b6e5a;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .livro-meta {
@@ -453,9 +499,9 @@
 }
 
 .livro-meta p {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .livro-meta p:last-child {
@@ -475,9 +521,9 @@
   margin-top: 8px;
   font-size: 13px;
   color: #7b6e5a;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .livro-descricao {
@@ -568,6 +614,7 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 5px;
+  min-width: 0;
 }
 
 .btn-add-estante {

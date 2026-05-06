@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import alertIcon from "../imagens/icons/alerta.png";
 
 export default function Popup({ visible, message, onClose, onConfirm, type = "info" }) {
   const [hoverCancel, setHoverCancel] = useState(false);
@@ -10,99 +11,146 @@ export default function Popup({ visible, message, onClose, onConfirm, type = "in
     position: "fixed",
     inset: 0,
     display: "flex",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "center",
-    pointerEvents: "none",
+    pointerEvents: "auto",
     zIndex: 9999,
-    paddingTop: "88px",
+    padding: 20,
+    background: "rgba(0, 0, 0, 0.28)",
   };
 
   const boxStyle = {
-    pointerEvents: "auto",
-    background: "linear-gradient(135deg, #d8a336, #c48e25)",
-    color: "#07213a",
-    padding: "30px 38px",
+    position: "relative",
+    background: "#ffffff",
+    color: "#111111",
+    padding: "28px 30px 24px",
     borderRadius: 18,
-    boxShadow: "0 18px 50px rgba(3,24,48,0.18)",
-    maxWidth: 860,
-    minWidth: 520,
+    boxShadow: "0 18px 50px rgba(0, 0, 0, 0.25)",
+    maxWidth: 540,
+    width: "min(540px, 100%)",
     textAlign: "center",
     fontSize: 17,
-    border: "1px solid rgba(100,140,180,0.28)",
+    border: "1px solid #e6e6e6",
   };
 
   const closeBtnStyle = {
     position: "absolute",
-    top: 8,
-    right: 10,
+    top: 14,
+    right: 14,
     background: "transparent",
     border: "none",
     cursor: "pointer",
     fontSize: 16,
     zIndex: 10000,
     pointerEvents: "auto",
-  };
-
-  const actionsStyle = {
-    display: "flex",
-    justifyContent: "center",
-    gap: "12px",
-    marginTop: "18px",
-    flexWrap: "wrap",
+    color: "#111111",
   };
 
   const actionButtonStyle = {
     border: "none",
     borderRadius: "999px",
-    padding: "10px 18px",
+    padding: "11px 22px",
     cursor: "pointer",
     fontWeight: 700,
     fontSize: 14,
+    minWidth: 110,
   };
 
   const confirmButtonStyle = {
     ...actionButtonStyle,
-    background: hoverConfirm ? "rgba(255, 255, 255, 0.85)" : "#ffffff",
-    color: "#07213a",
-    transition: "background 0.2s ease",
+    background: hoverConfirm ? "#d9a900" : "#f1c40f",
+    color: "#111111",
+    transition: "background 0.2s ease, transform 0.2s ease",
   };
 
   const cancelButtonStyle = {
     ...actionButtonStyle,
-    background: hoverCancel ? "rgba(7, 33, 58, 0.25)" : "rgba(7, 33, 58, 0.12)",
-    color: "#07213a",
-    transition: "background 0.2s ease",
+    background: hoverCancel ? "#d9a900" : "#f1c40f",
+    color: "#111111",
+    transition: "background 0.2s ease, transform 0.2s ease",
+  };
+
+  const okButtonStyle = {
+    ...actionButtonStyle,
+    background: "#f1c40f",
+    color: "#111111",
+    transition: "background 0.2s ease, transform 0.2s ease",
+  };
+
+  const headerStyle = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    marginBottom: 18,
+  };
+
+  const iconStyle = {
+    width: 42,
+    height: 42,
+    objectFit: "contain",
+  };
+
+  const titleStyle = {
+    margin: 0,
+    fontSize: 22,
+    fontWeight: 800,
+    color: "#c89c00",
+    letterSpacing: 0.4,
+  };
+
+  const messageStyle = {
+    margin: 0,
+    lineHeight: 1.5,
+    color: "#111111",
+  };
+
+  const buttonWrapperStyle = {
+    display: "flex",
+    justifyContent: "center",
+    gap: 12,
+    marginTop: 22,
+    flexWrap: "wrap",
   };
 
   return (
-    <div style={backdropStyle} aria-live="polite">
-      <div style={{ position: "relative" }}>
-        <div style={boxStyle} role={type === "confirm" ? "alertdialog" : "status"}>
-          {message}
-          {type === "confirm" && (
-            <div style={actionsStyle}>
-              <button 
-                type="button" 
-                onClick={onClose} 
-                style={cancelButtonStyle}
-                onMouseEnter={() => setHoverCancel(true)}
-                onMouseLeave={() => setHoverCancel(false)}
-              >
-                Cancelar
-              </button>
-              <button 
-                type="button" 
-                onClick={onConfirm} 
-                style={confirmButtonStyle}
-                onMouseEnter={() => setHoverConfirm(true)}
-                onMouseLeave={() => setHoverConfirm(false)}
-              >
-                Confirmar
-              </button>
-            </div>
-          )}
-        </div>
+    <div style={backdropStyle} aria-live="polite" onClick={onClose}>
+      <div style={boxStyle} role={type === "confirm" ? "alertdialog" : "dialog"} onClick={(event) => event.stopPropagation()}>
         <button aria-label="Fechar" onClick={onClose} style={closeBtnStyle}>✕</button>
+        <div style={headerStyle}>
+          <img src={alertIcon} alt="Alerta" style={iconStyle} />
+          <h2 style={titleStyle}>Atenção</h2>
+        </div>
+        <p style={messageStyle}>{message}</p>
+        {type === "confirm" && (
+          <div style={buttonWrapperStyle}>
+            <button 
+              type="button" 
+              onClick={onClose} 
+              style={cancelButtonStyle}
+              onMouseEnter={() => setHoverCancel(true)}
+              onMouseLeave={() => setHoverCancel(false)}
+            >
+              Cancelar
+            </button>
+            <button 
+              type="button" 
+              onClick={onConfirm} 
+              style={confirmButtonStyle}
+              onMouseEnter={() => setHoverConfirm(true)}
+              onMouseLeave={() => setHoverConfirm(false)}
+            >
+              OK
+            </button>
+          </div>
+        )}
+        {type !== "confirm" && (
+          <div style={buttonWrapperStyle}>
+            <button type="button" onClick={onClose} style={okButtonStyle}>
+              OK
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

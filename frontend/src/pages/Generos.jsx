@@ -23,7 +23,16 @@ export default function Generos() {
   const [acervo, setAcervo] = useState([]);
   const [carregandoLivros, setCarregandoLivros] = useState(true);
   const [busca, setBusca] = useState("");
-  const [modo, setModo] = useState("cards");
+  
+  const [modo, setModo] = useState(() => {
+    const saved = localStorage.getItem("generosModo");
+    return saved || "cards";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("generosModo", modo);
+  }, [modo]);
+
   const [generos, setGeneros] = useState(() => loadGeneros());
   const [formAberto, setFormAberto] = useState(false);
   const [editandoGenero, setEditandoGenero] = useState(null);
@@ -262,14 +271,24 @@ export default function Generos() {
               />
             </label>
 
-            <select
-              value={modo}
-              onChange={(event) => setModo(event.target.value)}
-              aria-label="Modo de visualização"
-            >
-              <option value="cards">Cards</option>
-              <option value="lista">Lista</option>
-            </select>
+            <div className="modo-toggle">
+              <button
+                type="button"
+                className={`modo-toggle-btn ${modo === "cards" ? "active" : ""}`}
+                onClick={() => setModo("cards")}
+                title="Visualizar em cards"
+              >
+                Cards
+              </button>
+              <button
+                type="button"
+                className={`modo-toggle-btn ${modo === "lista" ? "active" : ""}`}
+                onClick={() => setModo("lista")}
+                title="Visualizar em lista"
+              >
+                Lista
+              </button>
+            </div>
           </div>
         </>
       )}

@@ -10,8 +10,6 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard">
-
-
       <div className="header">
         <h1>
           Bem-vindo(a)
@@ -20,17 +18,11 @@ export default function Dashboard() {
           )}
           !
         </h1>
-        <p>
-            Veja os últimos livros adicionados e acompanhe os gêneros mais presentes.
-        </p>
       </div>
-
 
       <Stats />
 
- 
       <Table />
-
     </div>
   );
 }
