@@ -58,21 +58,21 @@ export default function Popup({ visible, message, onClose, onConfirm, type = "in
 
   const confirmButtonStyle = {
     ...actionButtonStyle,
-    background: hoverConfirm ? "#d9a900" : "#f1c40f",
+    background: hoverConfirm ? "#b88220" : "#d8a336",
     color: "#111111",
     transition: "background 0.2s ease, transform 0.2s ease",
   };
 
   const cancelButtonStyle = {
     ...actionButtonStyle,
-    background: hoverCancel ? "#d9a900" : "#f1c40f",
+    background: hoverCancel ? "#b88220" : "#d8a336",
     color: "#111111",
     transition: "background 0.2s ease, transform 0.2s ease",
   };
 
   const okButtonStyle = {
     ...actionButtonStyle,
-    background: "#f1c40f",
+    background: "#d8a336",
     color: "#111111",
     transition: "background 0.2s ease, transform 0.2s ease",
   };
@@ -86,8 +86,8 @@ export default function Popup({ visible, message, onClose, onConfirm, type = "in
   };
 
   const iconStyle = {
-    width: 42,
-    height: 42,
+    width: 32,
+    height: 32,
     objectFit: "contain",
   };
 
@@ -95,7 +95,7 @@ export default function Popup({ visible, message, onClose, onConfirm, type = "in
     margin: 0,
     fontSize: 22,
     fontWeight: 800,
-    color: "#c89c00",
+    color: "#c48e25",
     letterSpacing: 0.4,
   };
 

@@ -21,13 +21,11 @@ function Field({ label, type = "text", value, onChange, placeholder }) {
 const TIPOS = [
   {
     value: "bibliotecario",
-    icon: "🏛️",
     label: "Bibliotecário",
     desc: "Acesso administrativo",
   },
   {
     value: "leitor",
-    icon: "📖",
     label: "Leitor",
     desc: "Acesso à estante pessoal",
   },
@@ -86,12 +84,6 @@ function LoginForm({ tipo, setTipo }) {
       <button className="auth-submit" onClick={handleSubmit}>
         Entrar →
       </button>
-
-      {tipo === "bibliotecario" && (
-        <p style={{ fontSize: 12, color: "#a08968", textAlign: "center", margin: "6px 0 0" }}>
-          Padrão inicial: login <strong>admin</strong> / senha <strong>admin123</strong>
-        </p>
-      )}
     </div>
   );
 }
