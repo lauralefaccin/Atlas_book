@@ -1,0 +1,435 @@
+openapi: '3.0.0'
+
+info:
+  title: Biblioteca Online API
+  description: >
+    API para um sistema de biblioteca online com acervo digital,
+    gerenciamento de usuários, livros e estante pessoal.
+  version: '1.0.0'
+
+servers:
+  - url: http://localhost:3001/api
+    description: Servidor local de desenvolvimento
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+  - name: Livros
+  - name: Leitores
+  - name: Usuários
+  - name: Estante
+
+paths:
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      operationId: loginUser
+      summary: Login de usuário
+      description: Autentica um usuário e retorna um token JWT.
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - login
+                - senha
+                - tipo
+              properties:
+                login:
+                  type: string
+                  example: usuario123
+
+                senha:
+                  type: string
+                  format: password
+                  example: senhaSegura
+
+                tipo:
+                  type: string
+                  example: leitor
+
+      responses:
+        "200":
+          description: Login realizado com sucesso
+
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: jwt.token.aqui
+
+        "401":
+          description: Credenciais inválidas
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/cadastro:
+    post:
+      tags:
+        - Auth
+
+      operationId: registerUser
+      summary: Cadastro de usuário
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+
+      responses:
+        "201":
+          description: Usuário criado com sucesso
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+        "400":
+          description: Dados inválidos
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /livros:
+    get:
+      tags:
+        - Livros
+
+      operationId: getAllBooks
+      summary: Listar livros
+
+      responses:
+        "200":
+          description: Lista de livros
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/Livro'
+
+    post:
+      tags:
+        - Livros
+
+      operationId: createBook
+      summary: Criar livro
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LivroCreate'
+
+      responses:
+        "201":
+          description: Livro criado
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Livro'
+
+        "400":
+          description: Dados inválidos
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /livros/{id}:
+    put:
+      tags:
+        - Livros
+
+      operationId: updateBookById
+      summary: Atualizar livro
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LivroUpdate'
+
+      responses:
+        "200":
+          description: Livro atualizado
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Livro'
+
+        "404":
+          description: Livro não encontrado
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Livros
+
+      operationId: deleteBookById
+      summary: Remover livro
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+
+          schema:
+            type: integer
+
+      responses:
+        "204":
+          description: Livro removido
+
+        "404":
+          description: Livro não encontrado
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /usuarios:
+    get:
+      tags:
+        - Usuários
+
+      operationId: getAllUsers
+      summary: Listar usuários
+
+      responses:
+        "200":
+          description: Lista de usuários
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/User'
+
+  /estante:
+    get:
+      tags:
+        - Estante
+
+      operationId: getUserBookshelf
+      summary: Obter estante do usuário
+
+      responses:
+        "200":
+          description: Lista de livros da estante
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/EstanteItem'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    Error:
+      type: object
+
+      properties:
+        erro:
+          type: string
+          example: Requisição inválida
+
+    UserRegistration:
+      type: object
+
+      required:
+        - nome
+        - email
+        - senha
+        - tipo
+
+      properties:
+        nome:
+          type: string
+          example: João Silva
+
+        email:
+          type: string
+          format: email
+          example: joao@email.com
+
+        senha:
+          type: string
+          format: password
+          example: senha123
+
+        tipo:
+          type: string
+          example: leitor
+
+    User:
+      type: object
+
+      properties:
+        id:
+          type: integer
+          example: 1
+
+        nome:
+          type: string
+          example: João Silva
+
+        email:
+          type: string
+          format: email
+          example: joao@email.com
+
+        tipo:
+          type: string
+          example: leitor
+
+    Livro:
+      type: object
+
+      properties:
+        id:
+          type: integer
+          example: 1
+
+        titulo:
+          type: string
+          example: Clean Code
+
+        autor:
+          type: string
+          example: Robert C. Martin
+
+        isbn:
+          type: string
+          example: "9780132350884"
+
+        descricao:
+          type: string
+          example: Livro sobre boas práticas de programação.
+
+        anoPublicacao:
+          type: integer
+          example: 2008
+
+    LivroCreate:
+      type: object
+
+      required:
+        - titulo
+        - autor
+
+      properties:
+        titulo:
+          type: string
+          example: Clean Code
+
+        autor:
+          type: string
+          example: Robert C. Martin
+
+        isbn:
+          type: string
+          example: "9780132350884"
+
+        descricao:
+          type: string
+          example: Livro sobre boas práticas.
+
+        anoPublicacao:
+          type: integer
+          example: 2008
+
+    LivroUpdate:
+      type: object
+
+      properties:
+        titulo:
+          type: string
+          example: Clean Code - Updated
+
+        autor:
+          type: string
+          example: Robert C. Martin
+
+        descricao:
+          type: string
+          example: Nova edição atualizada.
+
+    EstanteItem:
+      type: object
+
+      properties:
+        livroId:
+          type: integer
+          example: 10
+
+        titulo:
+          type: string
+          example: Clean Code
+
+        status:
+          type: string
+
+          enum:
+            - lendo
+            - lido
+            - quero ler
+
+          example: lendo
+
+        favorito:
+          type: boolean
+          example: true
