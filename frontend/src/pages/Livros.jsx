@@ -1,11 +1,12 @@
 import { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Livros.css";
-import { GENEROS, getGeneroColor, useGeneros } from "../data/generos";
+import { getGeneroColor, useGeneros } from "../data/generos";
 import { useAutores } from "../data/autores";
 import { useAuth } from "../context/AuthContext";
 import { usePopup } from "../context/PopupContext";
 import { api } from "../services/api";
+import OpenLibrarySearch from "../components/OpenLibrarySearch";
 import estanteIcon from "../imagens/icons/estante (2).png";
 
 export default function Livros() {
@@ -26,7 +27,7 @@ export default function Livros() {
     const g = params.get("genero");
     if (g) setGenero(g);
   }, [location.search]);
-  
+
   const [modo, setModo] = useState(() => {
     const saved = localStorage.getItem("livrosModo");
     return saved || "cards";
@@ -56,15 +57,10 @@ export default function Livros() {
   const [formLivro, setFormLivro] = useState(initialForm);
   const [formAberto, setFormAberto] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
-  const [expandedLivroId, setExpandedLivroId] = useState(null);
 
   useEffect(() => {
     async function loadEstante() {
-      if (!user) {
-        setEstanteIds([]);
-        return;
-      }
-
+      if (!user) { setEstanteIds([]); return; }
       try {
         const estante = await api.getEstante();
         setEstanteIds(estante.map((livro) => livro.id));
@@ -73,7 +69,6 @@ export default function Livros() {
         setEstanteIds([]);
       }
     }
-
     loadEstante();
     const handler = () => loadEstante();
     window.addEventListener("estante:changed", handler);
@@ -82,11 +77,7 @@ export default function Livros() {
 
   useEffect(() => {
     async function loadLivros() {
-      if (!user) {
-        setAcervo([]);
-        return;
-      }
-
+      if (!user) { setAcervo([]); return; }
       try {
         const livros = await api.getLivros();
         setAcervo(livros);
@@ -95,15 +86,12 @@ export default function Livros() {
         setAcervo([]);
       }
     }
-
     loadLivros();
   }, [user]);
 
   const getCorGenero = (generoNome) => {
     const generoCustomizado = generos.find((g) => g.nome === generoNome);
-    if (generoCustomizado?.cor) {
-      return generoCustomizado.cor;
-    }
+    if (generoCustomizado?.cor) return generoCustomizado.cor;
     return getGeneroColor(generoNome);
   };
 
@@ -129,10 +117,7 @@ export default function Livros() {
 
   const getAutorId = (livro) => {
     const autorId = Number(livro.autorId ?? livro.autor_id);
-    if (autorId) {
-      return autorId.toString();
-    }
-
+    if (autorId) return autorId.toString();
     const autorNome = (livro.autor || "").trim().toLowerCase();
     const autorEncontradoId = autoresMapByNome[autorNome];
     return autorEncontradoId ? autorEncontradoId.toString() : "";
@@ -143,7 +128,6 @@ export default function Livros() {
     return acervo.filter((livro) => {
       const atendeGenero = genero === "Todos os gêneros" || livro.genero === genero;
       if (!atendeGenero) return false;
-
       if (!termo) return true;
       const autorNome = getAutorNome(livro);
       const alvoBusca = `${livro.titulo} ${autorNome}`.toLowerCase();
@@ -151,27 +135,41 @@ export default function Livros() {
     });
   }, [busca, genero, acervo, autoresMap]);
 
-  // FUNÇÃO PARA SALVAR NA ESTANTE
+  // ── Open Library: preencher formulário automaticamente ────
+  function handleOpenLibrarySelect(livroOL) {
+    // Tentar encontrar o autor na lista local pelo nome
+    const nomeNormalizado = (livroOL.autor || "").trim().toLowerCase();
+    const autorId = autoresMapByNome[nomeNormalizado] || "";
+
+    // Mapear gênero da Open Library para os gêneros cadastrados
+    const generoEncontrado = mapearGeneroOL(livroOL.generos, generos);
+
+    setFormLivro((prev) => ({
+      ...prev,
+      titulo: livroOL.titulo
+        ? livroOL.titulo.substring(0, TITULO_MAX_LENGTH)
+        : prev.titulo,
+      autorId: autorId ? autorId.toString() : prev.autorId,
+      autorNome: livroOL.autor || prev.autorNome,
+      editora: livroOL.editora
+        ? livroOL.editora.substring(0, 30)
+        : prev.editora,
+      ano: livroOL.ano ? String(livroOL.ano) : prev.ano,
+      genero: generoEncontrado || prev.genero,
+      sinopse: livroOL.sinopse
+        ? livroOL.sinopse.substring(0, SINOPSE_MAX_LENGTH)
+        : prev.sinopse,
+    }));
+  }
+
+  // ── Adicionar à estante ────────────────────────────────────
   const adicionarAEstante = async (livro, e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    if (!user) {
-      showPopup("Faça login para adicionar livros à estante.");
-      return;
-    }
-
-    if (estanteIds.includes(livro.id)) {
-      showPopup("Este livro já está na sua estante!");
-      return;
-    }
-
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    if (!user) { showPopup("Faça login para adicionar livros à estante."); return; }
+    if (estanteIds.includes(livro.id)) { showPopup("Este livro já está na sua estante!"); return; }
     try {
       await api.adicionarEstante(livro.id);
-      const novaEstante = [...estanteIds, livro.id];
-      setEstanteIds(novaEstante);
+      setEstanteIds((current) => [...current, livro.id]);
       window.dispatchEvent(new CustomEvent("estante:changed"));
       showPopup(`${livro.titulo} foi adicionado à sua Estante!`);
     } catch (err) {
@@ -212,15 +210,12 @@ export default function Livros() {
       showPopup("Preencha pelo menos título, autor e gênero.");
       return;
     }
-
     const autorId = Number(formLivro.autorId);
     const autorNome = autoresMap[autorId] || formLivro.autorNome.trim();
-
     if (!autorId || !autorNome) {
       showPopup("Selecione um autor válido existente.");
       return;
     }
-
     const livroFormatado = {
       ...formLivro,
       titulo: formLivro.titulo.trim(),
@@ -232,7 +227,6 @@ export default function Livros() {
       ano: Number(formLivro.ano) || 0,
       sinopse: formLivro.sinopse.trim(),
     };
-
     try {
       if (editandoId) {
         const livroAtualizado = await api.editarLivro(editandoId, livroFormatado);
@@ -256,9 +250,7 @@ export default function Livros() {
           await api.deletarLivro(livro.id);
           setAcervo((current) => current.filter((item) => item.id !== livro.id));
           window.dispatchEvent(new CustomEvent("estante:changed"));
-          if (editandoId === livro.id) {
-            cancelarFormulario();
-          }
+          if (editandoId === livro.id) cancelarFormulario();
         } catch (err) {
           console.error("Erro ao excluir livro:", err.message);
           showPopup("Não foi possível excluir o livro no momento.");
@@ -304,7 +296,6 @@ export default function Livros() {
             type="button"
             className={`modo-toggle-btn ${modo === "cards" ? "active" : ""}`}
             onClick={() => setModo("cards")}
-            title="Visualizar em cards"
           >
             Cards
           </button>
@@ -312,7 +303,6 @@ export default function Livros() {
             type="button"
             className={`modo-toggle-btn ${modo === "lista" ? "active" : ""}`}
             onClick={() => setModo("lista")}
-            title="Visualizar em lista"
           >
             Lista
           </button>
@@ -322,8 +312,16 @@ export default function Livros() {
       {formAberto && (
         <>
           <div className="modal-backdrop" onClick={cancelarFormulario} />
-          <section className="livros-form-panel modal-card" onClick={(event) => event.stopPropagation()}>
+          <section className="livros-form-panel modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="livros-form-grid">
+              {/* ── Busca Open Library (só ao adicionar novo livro) ── */}
+              {!editandoId && (
+                <OpenLibrarySearch
+                  onSelect={handleOpenLibrarySelect}
+                  disabled={false}
+                />
+              )}
+
               <label>
                 Gênero
                 <select
@@ -351,7 +349,7 @@ export default function Livros() {
                   value={formLivro.autorId}
                   onChange={(e) => {
                     const selectedId = e.target.value;
-                    const selectedAutor = autores.find((autor) => autor.id.toString() === selectedId);
+                    const selectedAutor = autores.find((a) => a.id.toString() === selectedId);
                     setFormLivro((prev) => ({
                       ...prev,
                       autorId: selectedId,
@@ -361,9 +359,7 @@ export default function Livros() {
                 >
                   <option value="">Selecione um autor existente</option>
                   {autores.map((autor) => (
-                    <option key={autor.id} value={autor.id}>
-                      {autor.nome}
-                    </option>
+                    <option key={autor.id} value={autor.id}>{autor.nome}</option>
                   ))}
                 </select>
               </label>
@@ -391,10 +387,7 @@ export default function Livros() {
                 Editora
                 <input
                   value={formLivro.editora}
-                  onChange={(e) => {
-                    const valor = e.target.value.slice(0, 30);
-                    setFormLivro((prev) => ({ ...prev, editora: valor }));
-                  }}
+                  onChange={(e) => setFormLivro((prev) => ({ ...prev, editora: e.target.value.slice(0, 30) }))}
                   placeholder="Editora"
                 />
               </label>
@@ -402,10 +395,7 @@ export default function Livros() {
                 Ano
                 <input
                   value={formLivro.ano}
-                  onChange={(e) => {
-                    const valor = e.target.value.slice(0, 4);
-                    setFormLivro((prev) => ({ ...prev, ano: valor }));
-                  }}
+                  onChange={(e) => setFormLivro((prev) => ({ ...prev, ano: e.target.value.slice(0, 4) }))}
                   placeholder="Ano de publicação"
                   type="number"
                 />
@@ -425,57 +415,59 @@ export default function Livros() {
 
       {modo === "cards" && (
         <div className="livros-grid">
-          {livrosFiltrados.map((livro) => {
-            const aberto = expandedLivroId === livro.id;
-            return (
-              <article
-                key={livro.id}
-                className={`livro-card${aberto ? " expanded" : ""}`}
-                style={{ "--livro-accent": getCorGenero(livro.genero) }}
+          {livrosFiltrados.map((livro) => (
+            <article
+              key={livro.id}
+              className="livro-card"
+              style={{ "--livro-accent": getCorGenero(livro.genero) }}
+            >
+              <div className="livro-card-header">
+                <p className="livro-genero">{livro.genero}</p>
+                <button
+                  className="btn-add-estante"
+                  onClick={(e) => adicionarAEstante(livro, e)}
+                  title={user ? "Salvar na Estante" : "Faça login para adicionar à estante"}
+                  disabled={!user}
+                >
+                  <img src={estanteIcon} alt="Salvar na Estante" />
+                </button>
+              </div>
+              <div
+                className="livro-card-clickable"
+                onClick={() => navigate(`/livro/${livro.id}`)}
+                style={{ cursor: "pointer" }}
               >
-                <div className="livro-card-header">
-                  <p className="livro-genero">{livro.genero}</p>
-                  <button 
-                    className="btn-add-estante" 
-                    onClick={(e) => adicionarAEstante(livro, e)}
-                    title={user ? "Salvar na Estante" : "Faça login para adicionar à estante"}
-                    disabled={!user}
-                  >
-                    <img src={estanteIcon} alt="Salvar na Estante" />
+                <h3>{livro.titulo}</h3>
+                <p className="livro-autor">
+                  {getAutorNome(livro) || ""}
+                  {getAutorNome(livro) && livro.nacionalidade ? " • " : ""}
+                  {livro.nacionalidade || ""}
+                </p>
+                <div className="livro-meta">
+                  <p>
+                    {livro.editora?.substring(0, 30) || ""}
+                    {livro.editora && livro.ano ? " • " : ""}
+                    {livro.ano ? String(livro.ano).substring(0, 4) : ""}
+                  </p>
+                </div>
+              </div>
+              {isBibliotecario && (
+                <div className="livro-card-actions">
+                  <button type="button" className="btn-delete" onClick={(e) => { e.stopPropagation(); abrirEditarLivro(livro); }}>
+                    Editar
+                  </button>
+                  <button type="button" className="btn-delete" onClick={(e) => { e.stopPropagation(); excluirLivro(livro); }}>
+                    Excluir
                   </button>
                 </div>
-                <div
-                  className="livro-card-clickable"
-                  onClick={() => navigate(`/livro/${livro.id}`)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <h3>{livro.titulo}</h3>
-                  <p className="livro-autor">{getAutorNome(livro) || ""}{getAutorNome(livro) && livro.nacionalidade ? " • " : ""}{livro.nacionalidade || ""}</p>
-                  <div className="livro-meta">
-                    <p>{livro.editora?.substring(0, 30) || ""}{livro.editora && livro.ano ? " • " : ""}{livro.ano ? String(livro.ano).substring(0, 4) : ""}</p>
-                  </div>
-                </div>
-                {isBibliotecario && (
-                  <div className="livro-card-actions">
-                    <button
-                      type="button"
-                      className="btn-delete"
-                      onClick={(e) => { e.stopPropagation(); abrirEditarLivro(livro); }}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-delete"
-                      onClick={(e) => { e.stopPropagation(); excluirLivro(livro); }}
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                )}
-              </article>
-            );
-          })}
+              )}
+            </article>
+          ))}
+          {livrosFiltrados.length === 0 && (
+            <div className="livros-vazio" style={{ gridColumn: "1 / -1" }}>
+              Nenhum livro encontrado.
+            </div>
+          )}
         </div>
       )}
 
@@ -489,29 +481,25 @@ export default function Livros() {
             >
               <div>
                 <h3>{livro.titulo}</h3>
-                <p className="livro-autor">{getAutorNome(livro) || ""}{getAutorNome(livro) && livro.nacionalidade ? " • " : ""}{livro.nacionalidade || ""}</p>
-                <p className="livro-meta-row">{livro.editora?.substring(0, 30) || ""}{livro.editora && livro.ano ? " • " : ""}{livro.ano ? String(livro.ano).substring(0, 4) : ""}</p>
+                <p className="livro-autor">
+                  {getAutorNome(livro) || ""}
+                  {getAutorNome(livro) && livro.nacionalidade ? " • " : ""}
+                  {livro.nacionalidade || ""}
+                </p>
+                <p className="livro-meta-row">
+                  {livro.editora?.substring(0, 30) || ""}
+                  {livro.editora && livro.ano ? " • " : ""}
+                  {livro.ano ? String(livro.ano).substring(0, 4) : ""}
+                </p>
                 {isBibliotecario && (
                   <div className="livro-row-actions">
-                    <button
-                      type="button"
-                      className="btn-delete"
-                      onClick={() => abrirEditarLivro(livro)}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-delete"
-                      onClick={() => excluirLivro(livro)}
-                    >
-                      Excluir
-                    </button>
+                    <button type="button" className="btn-delete" onClick={() => abrirEditarLivro(livro)}>Editar</button>
+                    <button type="button" className="btn-delete" onClick={() => excluirLivro(livro)}>Excluir</button>
                   </div>
                 )}
               </div>
-              <button 
-                className="btn-add-estante-list" 
+              <button
+                className="btn-add-estante-list"
                 onClick={(e) => adicionarAEstante(livro, e)}
                 title={user ? "Salvar na Estante" : "Faça login para adicionar à estante"}
                 disabled={!user}
@@ -520,8 +508,49 @@ export default function Livros() {
               </button>
             </article>
           ))}
+          {livrosFiltrados.length === 0 && (
+            <div className="livros-vazio">Nenhum livro encontrado.</div>
+          )}
         </div>
       )}
     </section>
   );
+}
+
+// ── Helper: mapear gênero da Open Library ─────────────────
+function mapearGeneroOL(generosOL, generosLocais) {
+  if (!generosOL || generosOL.length === 0) return "";
+  if (!generosLocais || generosLocais.length === 0) return "";
+
+  const nomesLocais = generosLocais.map((g) => g.nome.toLowerCase());
+
+  for (const generoOL of generosOL) {
+    const gl = generoOL.toLowerCase();
+
+    // Busca direta
+    const exato = nomesLocais.findIndex((n) => gl.includes(n) || n.includes(gl));
+    if (exato !== -1) return generosLocais[exato].nome;
+
+    // Mapeamentos comuns Open Library → AtlasBook
+    const alias = {
+      fiction: "Ficção",
+      fantasy: "Fantasia",
+      romance: "Romance",
+      classic: "Clássico",
+      novel: "Romance",
+      adventure: "Ficção",
+      "science fiction": "Ficção",
+      dystopia: "Ficção",
+      "literary fiction": "Ficção",
+    };
+
+    for (const [chave, valor] of Object.entries(alias)) {
+      if (gl.includes(chave)) {
+        const encontrado = generosLocais.find((g) => g.nome === valor);
+        if (encontrado) return encontrado.nome;
+      }
+    }
+  }
+
+  return "";
 }
