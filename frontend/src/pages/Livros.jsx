@@ -136,12 +136,12 @@ export default function Livros() {
   }, [busca, genero, acervo, autoresMap]);
 
   // ── Open Library: preencher formulário automaticamente ────
+  // Chamado duas vezes pelo OpenLibrarySearch:
+  //   1ª vez → dados básicos imediatos (título, autor, ano, editora, gênero)
+  //   2ª vez → dados detalhados (+ sinopse e nacionalidade)
   function handleOpenLibrarySelect(livroOL) {
-    // Tentar encontrar o autor na lista local pelo nome
     const nomeNormalizado = (livroOL.autor || "").trim().toLowerCase();
     const autorId = autoresMapByNome[nomeNormalizado] || "";
-
-    // Mapear gênero da Open Library para os gêneros cadastrados
     const generoEncontrado = mapearGeneroOL(livroOL.generos, generos);
 
     setFormLivro((prev) => ({
@@ -156,9 +156,14 @@ export default function Livros() {
         : prev.editora,
       ano: livroOL.ano ? String(livroOL.ano) : prev.ano,
       genero: generoEncontrado || prev.genero,
+      // sinopse e nacionalidade chegam vazios na 1ª chamada
+      // e preenchidos na 2ª — só sobrescreve se vier algo
       sinopse: livroOL.sinopse
         ? livroOL.sinopse.substring(0, SINOPSE_MAX_LENGTH)
         : prev.sinopse,
+      nacionalidade: livroOL.nacionalidade
+        ? livroOL.nacionalidade.substring(0, NACIONALIDADE_MAX_LENGTH)
+        : prev.nacionalidade,
     }));
   }
 
