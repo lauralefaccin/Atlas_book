@@ -15,6 +15,7 @@
   color: #7b6e5a;
   margin-bottom: 8px;
   font-weight: 600;
+  flex-wrap: wrap;
 }
 
 .ol-badge {
@@ -26,6 +27,15 @@
   padding: 2px 8px;
   border-radius: 20px;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ol-hint {
+  margin-left: auto;
+  font-size: 11px;
+  color: #a08968;
+  font-weight: 400;
+  white-space: nowrap;
 }
 
 .ol-search-row {
@@ -56,6 +66,7 @@
   cursor: not-allowed;
 }
 
+/* Spinner */
 .ol-spinner {
   display: inline-block;
   width: 18px;
@@ -67,10 +78,17 @@
   flex-shrink: 0;
 }
 
+.ol-spinner-sm {
+  width: 13px;
+  height: 13px;
+  border-width: 2px;
+}
+
 @keyframes ol-spin {
   to { transform: rotate(360deg); }
 }
 
+/* Dropdown */
 .ol-dropdown {
   position: absolute;
   top: calc(100% + 6px);
@@ -93,6 +111,16 @@
   text-align: center;
 }
 
+.ol-loading-msg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  color: #8f7d5a;
+  font-size: 13px;
+}
+
+/* Itens do resultado */
 .ol-result-item {
   display: flex;
   flex-direction: column;
@@ -131,4 +159,18 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Tag de idioma não-inglês */
+.ol-lang-tag {
+  display: inline-block;
+  background: #e8f0fe;
+  color: #3a5ab0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+  margin-left: 2px;
 }
