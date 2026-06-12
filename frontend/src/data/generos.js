@@ -1,93 +1,56 @@
 import { useState, useEffect } from "react";
+import { api } from "../services/api";
 
-export const GENEROS = [
-  {
-    nome: "Clássico",
-    cor: "#c7922d",
-    descricao: "Obras atemporais que marcaram gerações e estilos literários.",
-  },
-  {
-    nome: "Romance",
-    cor: "#2d5c4e",
-    descricao: "Histórias centradas em relações humanas, sentimentos e conflitos.",
-  },
-  {
-    nome: "Ficção",
-    cor: "#486ca5",
-    descricao: "Narrativas inventivas que exploram ideias, cenários e personagens.",
-  },
-  {
-    nome: "Fantasia",
-    cor: "#7a5a92",
-    descricao: "Mundos imaginários com elementos mágicos.",
-  },
-];
-
-const GENERO_ALIAS_MAP = {
-  Realismo: "Romance",
-  Distopia: "Ficção",
-};
-
-export function normalizarGenero(genero) {
-  return GENERO_ALIAS_MAP[genero] || genero;
-}
-
-export const GENERO_COR_MAP = {
-  ...Object.fromEntries(GENEROS.map((item) => [item.nome, item.cor])),
-  Realismo: "#2d5c4e",
-  Distopia: "#486ca5",
-};
-
-export function getGeneroColor(genero) {
-  return GENERO_COR_MAP[normalizarGenero(genero)] || "#c08928";
-}
-
-const STORAGE_KEY = "acervo_generos";
 const GENEROS_CHANGED_EVENT = "generos:changed";
 
-export function loadGeneros() {
-  if (typeof window === "undefined") {
-    return GENEROS;
-  }
+// Mantido para uso nos livros e autores que precisam resolver cor por nome
+export const GENERO_COR_MAP_FALLBACK = {
+  "Clássico":          "#c7922d",
+  "Romance":           "#2d5c4e",
+  "Ficção Científica": "#486ca5",
+  "Fantasia":          "#7a5a92",
+  "Realismo":          "#2d5c4e",
+  "Distopia":          "#486ca5",
+  "Mistério":          "#5c3d2e",
+  "Terror":            "#3b1a1a",
+  "Aventura":          "#4a7c3f",
+  "Realismo":          "#8c7b5a",
+  "Poesia":            "#8c3a6b",
+  "Biografia":         "#3a6b8c",
+  "Filosofia":         "#5a6b3a",
+  "Policial":          "#3a4a5a",
+  "Histórico":         "#7a5a3a",
+  "Infantojuvenil":    "#c85a2e",
+};
 
-  const salvo = window.localStorage.getItem(STORAGE_KEY);
-  if (!salvo) {
-    return GENEROS;
-  }
-
-  try {
-    const parsed = JSON.parse(salvo);
-    return Array.isArray(parsed) ? parsed : GENEROS;
-  } catch {
-    return GENEROS;
-  }
-}
-
-export function saveGeneros(generos) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(generos));
-  window.dispatchEvent(new CustomEvent(GENEROS_CHANGED_EVENT));
+export function getGeneroColor(generoNome) {
+  return GENERO_COR_MAP_FALLBACK[generoNome] || "#c08928";
 }
 
 export function useGeneros() {
-  const [generos, setGeneros] = useState(() => loadGeneros());
+  const [generos, setGeneros] = useState([]);
+
+  async function fetchGeneros() {
+    try {
+      const data = await api.getGeneros();
+      setGeneros(data);
+    } catch (err) {
+      console.error("Erro ao carregar gêneros:", err.message);
+      setGeneros([]);
+    }
+  }
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return undefined;
-    }
+    fetchGeneros();
 
-    const syncGeneros = () => setGeneros(loadGeneros());
-
-    window.addEventListener(GENEROS_CHANGED_EVENT, syncGeneros);
-
-    return () => {
-      window.removeEventListener(GENEROS_CHANGED_EVENT, syncGeneros);
-    };
+    const handler = () => fetchGeneros();
+    window.addEventListener(GENEROS_CHANGED_EVENT, handler);
+    return () => window.removeEventListener(GENEROS_CHANGED_EVENT, handler);
   }, []);
 
   return generos;
+}
+
+export function dispatchGenerosChanged() {
+  window.dispatchEvent(new CustomEvent(GENEROS_CHANGED_EVENT));
 }

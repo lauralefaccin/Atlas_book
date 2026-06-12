@@ -7,6 +7,8 @@ import leitoresRoutes   from "./routes/leitores.js";
 import usuariosRoutes   from "./routes/usuarios.js";
 import livrosRoutes     from "./routes/livros.js";
 import estanteRoutes    from "./routes/estante.js";
+import generosRouter from "./routes/generos.js";
+import autoresRouter from "./routes/autores.js";
 import { initDatabase } from "./db/init.js";
 
 dotenv.config();
@@ -24,3 +26,5 @@ app.use("/api/leitores", leitoresRoutes);
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/livros",   livrosRoutes);
 app.use("/api/estante",  estanteRoutes);
+app.use("/api/generos", generosRouter);
+app.use("/api/autores", autoresRouter);

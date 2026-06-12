@@ -56,4 +56,16 @@ export const api = {
   atualizarStatusEstante: (livroId, status) => req("PATCH", `/estante/${livroId}`, { status }),
   toggleFavoritoEstante:  (livroId) => req("PATCH", `/estante/${livroId}/favorito`),
   removerEstante:         (livroId) => req("DELETE",  `/estante/${livroId}`),
+
+  // Gêneros
+  getGeneros:    ()       => req("GET",    "/generos"),
+  criarGenero:   (dados)  => req("POST",   "/generos",      dados),
+  editarGenero:  (id, d)  => req("PUT",    `/generos/${id}`, d),
+  deletarGenero: (id)     => req("DELETE", `/generos/${id}`),
+
+  // Autores
+  getAutores:    ()       => req("GET",    "/autores"),
+  criarAutor:    (dados)  => req("POST",   "/autores",      dados),
+  editarAutor:   (id, d)  => req("PUT",    `/autores/${id}`, d),
+  deletarAutor:  (id)     => req("DELETE", `/autores/${id}`),
 };

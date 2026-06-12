@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { saveAutores, useAutores } from "../data/autores";
+import { useAutores, dispatchAutoresChanged } from "../data/autores";
 import { useAuth } from "../context/AuthContext";
 import { usePopup } from "../context/PopupContext";
 import { getGeneroColor, useGeneros } from "../data/generos";
@@ -19,7 +19,6 @@ const initialForm = {
 export default function Autores() {
   const autores = useAutores();
   const [acervo, setAcervo] = useState([]);
-  const [carregandoLivros, setCarregandoLivros] = useState(true);
   const generos = useGeneros();
   const { user } = useAuth();
   const isBibliotecario = user?.tipo === "bibliotecario";
@@ -27,21 +26,12 @@ export default function Autores() {
   const [estanteIds, setEstanteIds] = useState([]);
   const navigate = useNavigate();
 
-  const [modo, setModo] = useState(() => {
-    const saved = localStorage.getItem("autoresModo");
-    return saved || "cards";
-  });
-
-  useEffect(() => {
-    localStorage.setItem("autoresModo", modo);
-  }, [modo]);
+  const [modo, setModo] = useState(() => localStorage.getItem("autoresModo") || "cards");
+  useEffect(() => { localStorage.setItem("autoresModo", modo); }, [modo]);
 
   const getCorGenero = (generoNome) => {
     const generoCustomizado = generos.find((g) => g.nome === generoNome);
-    if (generoCustomizado?.cor) {
-      return generoCustomizado.cor;
-    }
-    return getGeneroColor(generoNome);
+    return generoCustomizado?.cor || getGeneroColor(generoNome);
   };
 
   const [busca, setBusca] = useState("");
@@ -50,6 +40,7 @@ export default function Autores() {
   const [expandedLivroId, setExpandedLivroId] = useState(null);
   const [editandoId, setEditandoId] = useState(null);
   const [formAutor, setFormAutor] = useState(initialForm);
+  const [salvando, setSalvando] = useState(false);
 
   const autoresFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -65,19 +56,14 @@ export default function Autores() {
     if (!selectedAutor) return [];
     const termo = busca.trim().toLowerCase();
     if (!termo) return livrosDoAutor;
-    return livrosDoAutor.filter((livro) => {
-      const alvo = `${livro.titulo} ${livro.genero}`.toLowerCase();
-      return alvo.includes(termo);
-    });
+    return livrosDoAutor.filter((livro) =>
+      `${livro.titulo} ${livro.genero}`.toLowerCase().includes(termo)
+    );
   }, [selectedAutor, livrosDoAutor, busca]);
 
   useEffect(() => {
     async function loadEstante() {
-      if (!user) {
-        setEstanteIds([]);
-        return;
-      }
-
+      if (!user) { setEstanteIds([]); return; }
       try {
         const estante = await api.getEstante();
         setEstanteIds(estante.map((item) => item.id));
@@ -86,7 +72,6 @@ export default function Autores() {
         setEstanteIds([]);
       }
     }
-
     loadEstante();
     const handler = () => loadEstante();
     window.addEventListener("estante:changed", handler);
@@ -95,43 +80,22 @@ export default function Autores() {
 
   useEffect(() => {
     async function loadLivros() {
-      if (!user) {
-        setAcervo([]);
-        setCarregandoLivros(false);
-        return;
-      }
-
+      if (!user) { setAcervo([]); return; }
       try {
         const livros = await api.getLivros();
         setAcervo(livros);
       } catch (err) {
         console.error("Erro ao carregar livros:", err.message);
         setAcervo([]);
-      } finally {
-        setCarregandoLivros(false);
       }
     }
-
     loadLivros();
   }, [user]);
 
-  // FUNÇÃO PARA SALVAR NA ESTANTE
   const adicionarAEstante = async (livro, e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    if (!user) {
-      showPopup("Faça login para adicionar livros à estante.");
-      return;
-    }
-
-    if (estanteIds.includes(livro.id)) {
-      showPopup("Este livro já está na sua estante!");
-      return;
-    }
-
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    if (!user) { showPopup("Faça login para adicionar livros à estante."); return; }
+    if (estanteIds.includes(livro.id)) { showPopup("Este livro já está na sua estante!"); return; }
     try {
       await api.adicionarEstante(livro.id);
       setEstanteIds((current) => [...current, livro.id]);
@@ -143,21 +107,16 @@ export default function Autores() {
     }
   };
 
+  const normalizeGeneros = (g) => {
+    if (Array.isArray(g)) return g;
+    if (typeof g === "string") return g.split(",").map((item) => item.trim()).filter(Boolean);
+    return [];
+  };
+
   const abrirAdicionarAutor = () => {
     setFormAutor(initialForm);
     setEditandoId(null);
     setFormAberto(true);
-  };
-
-  const normalizeGeneros = (generos) => {
-    if (Array.isArray(generos)) return generos;
-    if (typeof generos === "string") {
-      return generos
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
-    }
-    return [];
   };
 
   const abrirEditarAutor = (autor) => {
@@ -178,51 +137,50 @@ export default function Autores() {
     setFormAberto(false);
   };
 
-  const salvarAutor = () => {
-    if (!formAutor.nome.trim()) {
-      showPopup("Preencha o nome do autor.");
-      return;
-    }
+  const salvarAutor = async () => {
+    if (!formAutor.nome.trim()) { showPopup("Preencha o nome do autor."); return; }
+    if (formAutor.principais_generos.length === 0) { showPopup("Selecione pelo menos um gênero."); return; }
 
-    if (formAutor.principais_generos.length === 0) {
-      showPopup("Selecione pelo menos um gênero.");
-      return;
-    }
-
-    const autorFormatado = {
-      ...formAutor,
+    const payload = {
       nome: formAutor.nome.trim(),
-      ano_nascimento: Number(formAutor.ano_nascimento) || undefined,
+      ano_nascimento: Number(formAutor.ano_nascimento) || null,
       nacionalidade: formAutor.nacionalidade.trim(),
       descricao: formAutor.descricao.trim(),
       principais_generos: normalizeGeneros(formAutor.principais_generos),
     };
 
-    const novoAutores = editandoId
-      ? autores.map((item) =>
-          item.id === editandoId
-            ? { ...item, ...autorFormatado, id: editandoId }
-            : item
-        )
-      : [...autores, { ...autorFormatado, id: Date.now() }];
-
-    saveAutores(novoAutores);
-    cancelarFormulario();
+    try {
+      setSalvando(true);
+      if (editandoId) {
+        await api.editarAutor(editandoId, payload);
+      } else {
+        await api.criarAutor(payload);
+      }
+      dispatchAutoresChanged();
+      cancelarFormulario();
+    } catch (err) {
+      console.error("Erro ao salvar autor:", err.message);
+      showPopup(`Não foi possível salvar o autor: ${err.message}`);
+    } finally {
+      setSalvando(false);
+    }
   };
 
   const excluirAutor = (autor) => {
     showConfirmPopup(
-      `Tem certeza de que deseja excluir o autor ${autor.nome}? Esta ação removerá todos os livros dele, inclusive da Estante.`,
-      () => {
-        saveAutores(autores.filter((item) => item.id !== autor.id));
-        if (selectedAutor?.id === autor.id) {
-          setSelectedAutor(null);
+      `Tem certeza de que deseja excluir o autor ${autor.nome}?`,
+      async () => {
+        try {
+          await api.deletarAutor(autor.id);
+          dispatchAutoresChanged();
+          if (selectedAutor?.id === autor.id) setSelectedAutor(null);
+        } catch (err) {
+          console.error("Erro ao excluir autor:", err.message);
+          showPopup(`Não foi possível excluir o autor: ${err.message}`);
         }
       }
     );
   };
-
-  const voltarParaLista = () => setSelectedAutor(null);
 
   return (
     <section className="livros-page">
@@ -257,7 +215,6 @@ export default function Autores() {
                 type="button"
                 className={`modo-toggle-btn ${modo === "cards" ? "active" : ""}`}
                 onClick={() => setModo("cards")}
-                title="Visualizar em cards"
               >
                 Cards
               </button>
@@ -265,7 +222,6 @@ export default function Autores() {
                 type="button"
                 className={`modo-toggle-btn ${modo === "lista" ? "active" : ""}`}
                 onClick={() => setModo("lista")}
-                title="Visualizar em lista"
               >
                 Lista
               </button>
@@ -277,7 +233,7 @@ export default function Autores() {
       {formAberto && (
         <>
           <div className="modal-backdrop" onClick={cancelarFormulario} />
-          <section className="livros-form-panel modal-card" onClick={(event) => event.stopPropagation()}>
+          <section className="livros-form-panel modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="livros-form-grid">
               <label>
                 Nome
@@ -292,10 +248,7 @@ export default function Autores() {
                 <input
                   type="number"
                   value={formAutor.ano_nascimento}
-                  onChange={(e) => {
-                    const valor = e.target.value.slice(0, 4);
-                    setFormAutor((prev) => ({ ...prev, ano_nascimento: valor }));
-                  }}
+                  onChange={(e) => setFormAutor((prev) => ({ ...prev, ano_nascimento: e.target.value.slice(0, 4) }))}
                   placeholder="Ano de nascimento"
                 />
               </label>
@@ -312,20 +265,19 @@ export default function Autores() {
                 <div className="generos-lista-selecao">
                   {generos.map((genero) => {
                     const selecionado = formAutor.principais_generos.includes(genero.nome);
-
                     return (
                       <button
                         key={genero.nome}
                         type="button"
                         className={`generos-lista-item${selecionado ? " is-selected" : ""}`}
-                        onClick={() => {
+                        onClick={() =>
                           setFormAutor((prev) => ({
                             ...prev,
                             principais_generos: selecionado
                               ? prev.principais_generos.filter((item) => item !== genero.nome)
                               : [...prev.principais_generos, genero.nome],
-                          }));
-                        }}
+                          }))
+                        }
                       >
                         <span>{genero.nome}</span>
                       </button>
@@ -337,10 +289,7 @@ export default function Autores() {
                 Descrição opcional
                 <textarea
                   value={formAutor.descricao}
-                  onChange={(e) => {
-                    const valor = e.target.value.slice(0, 100);
-                    setFormAutor((prev) => ({ ...prev, descricao: valor }));
-                  }}
+                  onChange={(e) => setFormAutor((prev) => ({ ...prev, descricao: e.target.value.slice(0, 100) }))}
                   placeholder="Breve descrição do autor"
                   rows={4}
                   style={{ resize: "vertical", minHeight: "96px", padding: "10px 12px", borderRadius: "12px", border: "1px solid #dfd1ba", fontFamily: "inherit", fontSize: "14px", color: "#3f311f", backgroundColor: "#fff" }}
@@ -348,8 +297,8 @@ export default function Autores() {
               </label>
             </div>
             <div className="livros-form-actions">
-              <button type="button" className="btn-add-estante-list" onClick={salvarAutor}>
-                {editandoId ? "Salvar alterações" : "Salvar autor"}
+              <button type="button" className="btn-add-estante-list" onClick={salvarAutor} disabled={salvando}>
+                {salvando ? "Salvando..." : editandoId ? "Salvar alterações" : "Salvar autor"}
               </button>
               <button type="button" className="btn-delete" onClick={cancelarFormulario}>
                 Cancelar
@@ -366,7 +315,7 @@ export default function Autores() {
               <p className="livros-kicker">Autor selecionado</p>
               <h1>{selectedAutor.nome}</h1>
             </div>
-            <button type="button" className="livros-add-btn" onClick={voltarParaLista}>
+            <button type="button" className="livros-add-btn" onClick={() => setSelectedAutor(null)}>
               Voltar para autores
             </button>
           </div>
@@ -389,159 +338,154 @@ export default function Autores() {
 
           {livrosFiltradosPorBusca.length > 0 ? (
             <div className="livros-grid">
-              {livrosFiltradosPorBusca.map((livro) => {
-                const aberto = expandedLivroId === livro.id;
-                return (
-                  <article
-                    key={livro.id}
-                    className={`livro-card${aberto ? " expanded" : ""}`}
-                    style={{ "--livro-accent": getCorGenero(livro.genero) }}
-                  >
-                    <div className="livro-card-header">
-                      <p className="livro-genero">{livro.genero}</p>
-                      <button 
-                        className="btn-add-estante" 
-                        onClick={(e) => adicionarAEstante(livro, e)}
-                        title="Salvar na Estante"
-                      >
-                        <img src={estanteIcon} alt="Salvar na Estante" />
-                      </button>
-                    </div>
-                    <div
-                      className="livro-card-clickable"
-                      onClick={() => navigate(`/livro/${livro.id}`)}
-                      style={{ cursor: "pointer" }}
+              {livrosFiltradosPorBusca.map((livro) => (
+                <article
+                  key={livro.id}
+                  className={`livro-card${expandedLivroId === livro.id ? " expanded" : ""}`}
+                  style={{ "--livro-accent": getCorGenero(livro.genero) }}
+                >
+                  <div className="livro-card-header">
+                    <p className="livro-genero">{livro.genero}</p>
+                    <button
+                      className="btn-add-estante"
+                      onClick={(e) => adicionarAEstante(livro, e)}
+                      title="Salvar na Estante"
                     >
-                      <h3>{livro.titulo}</h3>
-                      <p className="livro-autor">{selectedAutor.nome} • {livro.nacionalidade}</p>
-                      <div className="livro-meta">
-                        <p>{livro.editora || "Editora não informada"}</p>
-                        <p>{livro.ano || "-"}</p>
-                      </div>
+                      <img src={estanteIcon} alt="Salvar na Estante" />
+                    </button>
+                  </div>
+                  <div
+                    className="livro-card-clickable"
+                    onClick={() => navigate(`/livro/${livro.id}`)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <h3>{livro.titulo}</h3>
+                    <p className="livro-autor">{selectedAutor.nome} • {livro.nacionalidade}</p>
+                    <div className="livro-meta">
+                      <p>{livro.editora || "Editora não informada"}</p>
+                      <p>{livro.ano || "-"}</p>
                     </div>
-                  </article>
-                );
-              })}
+                  </div>
+                </article>
+              ))}
             </div>
           ) : (
             <div className="livros-vazio">Nenhum livro encontrado para este autor.</div>
           )}
         </>
       ) : (
-        modo === "cards" && (
-          <div className="livros-grid">
-            {autoresFiltrados.map((autor) => {
-              const generoPrincipal = normalizeGeneros(autor.principais_generos)[0] || "";
-              const generosAutor = normalizeGeneros(autor.principais_generos);
-              return (
-                <article
-                  key={autor.id}
-                  className="livro-card"
-                  style={{
-                    "--livro-accent": getCorGenero(generoPrincipal),
-                    cursor: "pointer",
-                  }}
-                  onClick={() => setSelectedAutor(autor)}
-                >
-                  <div className="livro-card-header">
-                    <p className="livro-genero">{generoPrincipal || "Autor"}</p>
-                  </div>
-                  <h3>{autor.nome}</h3>
-                  <p className="livro-autor">{autor.nacionalidade || ""}</p>
-                  {autor.ano_nascimento && <p className="livro-meta-row">Nascido em {autor.ano_nascimento}</p>}
-                  {autor.descricao && <p className="livro-descricao">{autor.descricao}</p>}
-                  {generosAutor.length > 0 && (
-                    <p className="livro-meta-row">Gêneros: {generosAutor.join(", ")}</p>
-                  )}
-                {isBibliotecario && (
-                  <div className="livro-card-actions">
-                    <button
-                      type="button"
-                      className="btn-action-small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        abrirEditarAutor(autor);
-                      }}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-action-small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        excluirAutor(autor);
-                      }}
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                )}
-              </article>
-            )})}
-
-            {autoresFiltrados.length === 0 && (
-              <div className="livros-vazio">Nenhum autor encontrado. Ajuste a pesquisa ou adicione um novo autor.</div>
-            )}
-          </div>
-        )
-      )}
-
-      {modo === "lista" && (
-        <div className="livros-lista">
-          {autoresFiltrados.map((autor) => {
-            const generoPrincipal = normalizeGeneros(autor.principais_generos)[0] || "";
-            const generosAutor = normalizeGeneros(autor.principais_generos);
-            return (
-              <article
-                key={autor.id}
-                className="livro-row"
-                style={{
-                  "--livro-accent": getCorGenero(generoPrincipal),
-                  cursor: "pointer",
-                }}
-                onClick={() => setSelectedAutor(autor)}
-              >
-                <div>
-                  <h3>{autor.nome}</h3>
-                  <p className="livro-autor">{autor.nacionalidade || ""}</p>
-                  {autor.ano_nascimento && <p className="livro-meta-row">Nascido em {autor.ano_nascimento}</p>}
-                  {autor.descricao && <p className="livro-descricao">{autor.descricao}</p>}
-                  {generosAutor.length > 0 && (
-                    <p className="livro-meta-row">Gêneros: {generosAutor.join(", ")}</p>
-                  )}
-                  {isBibliotecario && (
-                    <div style={{ display: "flex", gap: "8px", marginTop: "8px", flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        className="btn-add-estante-list"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          abrirEditarAutor(autor);
-                        }}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-delete"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          excluirAutor(autor);
-                        }}
-                      >
-                        Excluir
-                      </button>
+        <>
+          {modo === "cards" && (
+            <div className="livros-grid">
+              {autoresFiltrados.map((autor) => {
+                const generoPrincipal = normalizeGeneros(autor.principais_generos)[0] || "";
+                const generosAutor = normalizeGeneros(autor.principais_generos);
+                return (
+                  <article
+                    key={autor.id}
+                    className="livro-card"
+                    style={{ "--livro-accent": getCorGenero(generoPrincipal), cursor: "pointer" }}
+                    onClick={() => setSelectedAutor(autor)}
+                  >
+                    <div className="livro-card-header">
+                      <p className="livro-genero">{generoPrincipal || "Autor"}</p>
                     </div>
-                  )}
+                    <h3>{autor.nome}</h3>
+                    <p className="livro-autor">{autor.nacionalidade || ""}</p>
+                    {autor.ano_nascimento && (
+                      <p className="livro-meta-row">Nascido em {autor.ano_nascimento}</p>
+                    )}
+                    {autor.descricao && (
+                      <p className="livro-descricao">{autor.descricao}</p>
+                    )}
+                    {generosAutor.length > 0 && (
+                      <p className="livro-meta-row">Gêneros: {generosAutor.join(", ")}</p>
+                    )}
+                    {isBibliotecario && (
+                      <div className="livro-card-actions">
+                        <button
+                          type="button"
+                          className="btn-action-small"
+                          onClick={(e) => { e.stopPropagation(); abrirEditarAutor(autor); }}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-action-small"
+                          onClick={(e) => { e.stopPropagation(); excluirAutor(autor); }}
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+
+              {autoresFiltrados.length === 0 && (
+                <div className="livros-vazio">
+                  Nenhum autor encontrado. Ajuste a pesquisa ou adicione um novo autor.
                 </div>
-              </article>
-            );
-          })}
-          {autoresFiltrados.length === 0 && (
-            <div className="livros-vazio">Nenhum autor encontrado. Ajuste a pesquisa ou adicione um novo autor.</div>
+              )}
+            </div>
           )}
-        </div>
+
+          {modo === "lista" && (
+            <div className="livros-lista">
+              {autoresFiltrados.map((autor) => {
+                const generoPrincipal = normalizeGeneros(autor.principais_generos)[0] || "";
+                const generosAutor = normalizeGeneros(autor.principais_generos);
+                return (
+                  <article
+                    key={autor.id}
+                    className="livro-row"
+                    style={{ "--livro-accent": getCorGenero(generoPrincipal), cursor: "pointer" }}
+                    onClick={() => setSelectedAutor(autor)}
+                  >
+                    <div>
+                      <h3>{autor.nome}</h3>
+                      <p className="livro-autor">{autor.nacionalidade || ""}</p>
+                      {autor.ano_nascimento && (
+                        <p className="livro-meta-row">Nascido em {autor.ano_nascimento}</p>
+                      )}
+                      {autor.descricao && (
+                        <p className="livro-descricao">{autor.descricao}</p>
+                      )}
+                      {generosAutor.length > 0 && (
+                        <p className="livro-meta-row">Gêneros: {generosAutor.join(", ")}</p>
+                      )}
+                      {isBibliotecario && (
+                        <div style={{ display: "flex", gap: "8px", marginTop: "8px", flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            className="btn-add-estante-list"
+                            onClick={(e) => { e.stopPropagation(); abrirEditarAutor(autor); }}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-delete"
+                            onClick={(e) => { e.stopPropagation(); excluirAutor(autor); }}
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+
+              {autoresFiltrados.length === 0 && (
+                <div className="livros-vazio">
+                  Nenhum autor encontrado. Ajuste a pesquisa ou adicione um novo autor.
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </section>
   );
