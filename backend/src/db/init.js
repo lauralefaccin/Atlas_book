@@ -329,7 +329,7 @@ export async function initDatabase({ closePool = true } = {}) {
   }
 }
 
-if (process.argv[1] === __filename) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   await initDatabase();
   process.exit();
 }

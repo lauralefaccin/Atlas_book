@@ -28,3 +28,16 @@ app.use("/api/livros",   livrosRoutes);
 app.use("/api/estante",  estanteRoutes);
 app.use("/api/generos", generosRouter);
 app.use("/api/autores", autoresRouter);
+
+// ── Inicialização ──────────────────────────────────────────
+console.log("🔍 app definido?", typeof app);
+initDatabase({ closePool: false })
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`✅ Servidor rodando na porta ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Falha ao inicializar banco:", err.message);
+    process.exit(1);
+  });
