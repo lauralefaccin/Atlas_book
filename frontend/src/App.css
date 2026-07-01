@@ -265,6 +265,38 @@ body {
   min-height: 140px;
 }
 
+.stat-card {
+  display: block;
+  box-sizing: border-box;
+  padding: 20px;
+  width: 180px;
+  min-height: 140px;
+  flex: 0 0 180px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  color: inherit;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.stat-card:hover:not(:disabled),
+.stat-card:focus-visible:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(44, 31, 18, 0.12);
+  border-color: #c8922a;
+}
+
+.stat-card:focus-visible {
+  outline: 2px solid #c8922a;
+  outline-offset: 2px;
+}
+
+.stat-card:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
 .card .value {
   margin: 0 0 6px;
   font-size: 18px;

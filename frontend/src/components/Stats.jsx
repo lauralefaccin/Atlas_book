@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAutores } from "../data/autores";
 import { useGeneros } from "../data/generos";
 import { useAuth } from "../context/AuthContext";
@@ -14,6 +15,7 @@ export default function Stats() {
   const generos = useGeneros();
   const autores = useAutores();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [estanteCount, setEstanteCount] = useState(0);
 
   useEffect(() => {
@@ -70,6 +72,8 @@ export default function Stats() {
     );
   }, [livros]);
 
+  const ultimoLivro = livrosOrdenados[0];
+
   const truncateText = (text, maxLength) => {
     if (typeof text !== 'string') return text;
     return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
@@ -80,33 +84,45 @@ export default function Stats() {
       title: "Títulos",
       value: livros.length,
       iconUrl: tituloIcon,
+      action: () => navigate("/livros"),
     },
     {
       title: "Gêneros",
       value: generos.length,
       iconUrl: coracaoIcon,
+      action: () => navigate("/generos"),
     },
     {
       title: "Autores",
       value: totalAutores,
       iconUrl: autoresIcon,
+      action: () => navigate("/autores"),
     },
     {
       title: "Minha Estante",
       value: estanteCount,
       iconUrl: estanteIcon,
+      action: () => navigate("/estante"),
     },
     {
       title: "Último adicionado",
-      value: livrosOrdenados.length > 0 ? truncateText(livrosOrdenados[0].titulo, 15) : "Nenhum livro",
+      value: ultimoLivro ? truncateText(ultimoLivro.titulo, 15) : "Nenhum livro",
       iconUrl: estrelasIcon,
+      action: ultimoLivro ? () => navigate(`/livro/${ultimoLivro.id}`) : null,
     },
   ];
 
   return (
     <div className="stats">
       {statsData.map((item, index) => (
-        <div key={index} className="card">
+        <button
+          key={index}
+          type="button"
+          className={`card stat-card${item.action ? " clickable" : " disabled"}`}
+          onClick={item.action || undefined}
+          disabled={!item.action}
+          aria-label={`${item.title}${item.value ? `: ${item.value}` : ""}`}
+        >
           
           <div className="icon">
             {item.iconUrl ? (
@@ -124,7 +140,7 @@ export default function Stats() {
             {item.title}
           </p>
 
-        </div>
+        </button>
       ))}
     </div>
   );
