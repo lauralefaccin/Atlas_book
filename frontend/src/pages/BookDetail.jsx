@@ -24,6 +24,7 @@ export default function BookDetail() {
   const [naEstante, setNaEstante] = useState(false);
   const [isFavorito, setIsFavorito] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState("");
+  const [isReading, setIsReading] = useState(false);
   const fromEstante = location?.state?.fromEstante === true;
 
   const STATUS_OPTIONS = ["Lendo", "Pretendo Ler", "Finalizado", "Desistiu"];
@@ -44,8 +45,7 @@ export default function BookDetail() {
   useEffect(() => {
     async function loadLivro() {
       try {
-        const livros = await api.getLivros();
-        const encontrado = livros.find((l) => l.id === Number(id));
+        const encontrado = await api.getLivro(id);
         if (encontrado) {
           setLivro(encontrado);
           if (fromEstante) {
@@ -58,12 +58,13 @@ export default function BookDetail() {
       } catch (err) {
         console.error("Erro ao carregar livro:", err.message);
         showPopup("Erro ao carregar o livro.");
+        navigate("/livros");
       } finally {
         setLoading(false);
       }
     }
     loadLivro();
-  }, [id, navigate, showPopup]);
+  }, [id, navigate, showPopup, fromEstante]);
 
   useEffect(() => {
     async function verificarEstante() {
@@ -196,16 +197,25 @@ export default function BookDetail() {
               {livro.ano && <span>{livro.ano}</span>}
             </div>
 
-            {user && (
+            <div className="book-detail-actions">
               <button
-                className={`book-detail-btn-estante${naEstante ? " disabled" : ""}`}
-                onClick={adicionarAEstante}
-                disabled={naEstante}
+                className="book-detail-btn-ler"
+                type="button"
+                onClick={() => setIsReading(true)}
               >
-                <img src={estanteIcon} alt="Estante" />
-                {naEstante ? "Na sua Estante" : "Adicionar à Estante"}
+                Ler
               </button>
-            )}
+              {user && (
+                <button
+                  className={`book-detail-btn-estante${naEstante ? " disabled" : ""}`}
+                  onClick={adicionarAEstante}
+                  disabled={naEstante}
+                >
+                  <img src={estanteIcon} alt="Estante" />
+                  {naEstante ? "Na sua Estante" : "Adicionar à Estante"}
+                </button>
+              )}
+            </div>
           </div>
 
           {fromEstante && (
@@ -226,39 +236,65 @@ export default function BookDetail() {
           )}
 
           <div className="book-detail-content">
-          <section className="book-detail-section">
-            <h2>Sinopse</h2>
-            <p className="book-detail-synopsis">
-              {livro.sinopse || "Sinopse não disponível."}
-            </p>
-          </section>
+            <section className="book-detail-section">
+              <h2>Sinopse</h2>
+              <p className="book-detail-synopsis">
+                {livro.sinopse || "Sinopse não disponível."}
+              </p>
+            </section>
 
-          <section className="book-detail-section">
-            <h2>Informações</h2>
-            <div className="book-detail-info-grid">
-              {livro.editora && (
-                <div className="book-info-item">
-                  <span className="book-info-label">Editora:</span>
-                  <span className="book-info-value">{livro.editora}</span>
-                </div>
-              )}
-              {livro.ano && (
-                <div className="book-info-item">
-                  <span className="book-info-label">Ano:</span>
-                  <span className="book-info-value">{livro.ano}</span>
-                </div>
-              )}
-              {livro.nacionalidade && (
-                <div className="book-info-item">
-                  <span className="book-info-label">Nacionalidade:</span>
-                  <span className="book-info-value">{livro.nacionalidade}</span>
-                </div>
-              )}
-            </div>
-          </section>
-        </div>
+            <section className="book-detail-section">
+              <h2>Informações</h2>
+              <div className="book-detail-info-grid">
+                {livro.editora && (
+                  <div className="book-info-item">
+                    <span className="book-info-label">Editora:</span>
+                    <span className="book-info-value">{livro.editora}</span>
+                  </div>
+                )}
+                {livro.ano && (
+                  <div className="book-info-item">
+                    <span className="book-info-label">Ano:</span>
+                    <span className="book-info-value">{livro.ano}</span>
+                  </div>
+                )}
+                {livro.nacionalidade && (
+                  <div className="book-info-item">
+                    <span className="book-info-label">Nacionalidade:</span>
+                    <span className="book-info-value">{livro.nacionalidade}</span>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
         </div>
       </div>
+
+      {isReading && (
+        <div className="book-read-overlay" role="dialog" aria-modal="true">
+          <div className="book-read-panel">
+            <header className="book-read-header">
+              <div>
+                <p className="book-read-label">Leitura</p>
+                <h2>{livro.titulo}</h2>
+                <p className="book-read-author">{autorNome}</p>
+              </div>
+              <button
+                type="button"
+                className="book-read-close"
+                onClick={() => setIsReading(false)}
+              >
+                Fechar
+              </button>
+            </header>
+            <article className="book-read-content">
+              <div className="book-read-text">
+                {livro.conteudo || livro.sinopse || "Conteúdo de leitura não disponível."}
+              </div>
+            </article>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

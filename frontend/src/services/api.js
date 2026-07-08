@@ -35,6 +35,7 @@ export const api = {
 
   // Livros
   getLivros:    ()       => req("GET",    "/livros"),
+  getLivro:     (id)     => req("GET",    `/livros/${id}`),
   criarLivro:   (dados)  => req("POST",   "/livros",      dados),
   editarLivro:  (id, d)  => req("PUT",    `/livros/${id}`, d),
   deletarLivro: (id)     => req("DELETE", `/livros/${id}`),

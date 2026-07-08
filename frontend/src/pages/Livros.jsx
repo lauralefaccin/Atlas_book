@@ -52,6 +52,7 @@ export default function Livros() {
     editora: "",
     ano: "",
     sinopse: "",
+    conteudo: "",
   };
 
   const [formLivro, setFormLivro] = useState(initialForm);
@@ -199,6 +200,7 @@ export default function Livros() {
       editora: livro.editora || "",
       ano: livro.ano?.toString() || "",
       sinopse: livro.sinopse || "",
+      conteudo: livro.conteudo || "",
     });
     setEditandoId(livro.id);
     setFormAberto(true);
@@ -231,6 +233,7 @@ export default function Livros() {
       editora: formLivro.editora.trim(),
       ano: Number(formLivro.ano) || 0,
       sinopse: formLivro.sinopse.trim(),
+      conteudo: formLivro.conteudo.trim(),
     };
     try {
       if (editandoId) {
@@ -386,6 +389,16 @@ export default function Livros() {
                   placeholder="Escreva a sinopse do livro"
                   rows={4}
                   style={{ resize: "vertical", minHeight: "100px", padding: "10px 12px", borderRadius: "12px", border: "1px solid #dfd1ba", fontFamily: "inherit", fontSize: "14px", color: "#3f311f", backgroundColor: "#fff" }}
+                />
+              </label>
+              <label style={{ gridColumn: "1 / -1" }}>
+                Conteúdo do livro
+                <textarea
+                  value={formLivro.conteudo}
+                  onChange={(e) => setFormLivro((prev) => ({ ...prev, conteudo: e.target.value }))}
+                  placeholder="Cole aqui o texto completo do livro"
+                  rows={10}
+                  style={{ resize: "vertical", minHeight: "180px", padding: "10px 12px", borderRadius: "12px", border: "1px solid #dfd1ba", fontFamily: "inherit", fontSize: "14px", color: "#3f311f", backgroundColor: "#fff" }}
                 />
               </label>
               <label>

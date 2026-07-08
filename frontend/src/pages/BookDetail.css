@@ -205,6 +205,31 @@
   cursor: not-allowed;
 }
 
+.book-detail-btn-ler {
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 24px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.book-detail-btn-ler:hover {
+  background: rgba(255, 255, 255, 0.32);
+  transform: translateY(-1px);
+}
+
+.book-detail-actions {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
 .book-detail-btn-estante img {
   width: 18px;
   height: 18px;
@@ -238,6 +263,93 @@
   white-space: pre-wrap;
   word-wrap: break-word;
   margin: 0;
+}
+
+.book-detail-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+}
+
+.book-read-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 16, 12, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 999;
+}
+
+.book-read-panel {
+  width: min(1120px, 100%);
+  max-height: 100%;
+  background: #fefcf8;
+  border-radius: 24px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.24);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.book-read-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 28px 32px;
+  background: linear-gradient(135deg, #c08928 0%, rgba(192, 137, 40, 0.95) 100%);
+  color: #fff;
+}
+
+.book-read-label {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  opacity: 0.9;
+  margin: 0 0 8px;
+}
+
+.book-read-header h2 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.book-read-author {
+  margin: 8px 0 0;
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.book-read-close {
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: transparent;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.book-read-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.book-read-content {
+  padding: 32px;
+  overflow: auto;
+  flex: 1;
+  background: #fff8f0;
+}
+
+.book-read-text {
+  white-space: pre-wrap;
+  line-height: 1.9;
+  color: #3f311f;
+  font-size: 17px;
+  max-width: 100%;
 }
 
 .book-detail-info-grid {

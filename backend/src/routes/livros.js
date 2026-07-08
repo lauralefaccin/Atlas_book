@@ -5,13 +5,20 @@ import { authMiddleware, soBibliotecario } from "../middlewares/auth.js";
 const router = Router();
 const TITULO_MAX_LENGTH = 60;
 const SINOPSE_MAX_LENGTH = 3000;
+const CONTEUDO_MAX_LENGTH = 3000000; // comporta romances completos (antes cortava no meio do livro)
 const NACIONALIDADE_MAX_LENGTH = 60;
 
 // GET /api/livros — público (leitores e bibliotecários)
+// Não traz a coluna 'conteudo' aqui: ela pode ter centenas de milhares de
+// caracteres por livro, e essa rota lista TODOS os livros de uma vez.
+// O texto completo só é buscado em GET /api/livros/:id, quando o usuário
+// abre um livro específico para leitura.
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      "SELECT * FROM livros ORDER BY titulo"
+      `SELECT id, titulo, autor, nacionalidade, editora, ano, sinopse,
+              exemplares, isbn, genero, criado_em
+       FROM livros ORDER BY titulo`
     );
     return res.json(rows);
   } catch (err) {
@@ -20,9 +27,27 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
+// GET /api/livros/:id — público (leitores e bibliotecários)
+router.get("/:id", authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM livros WHERE id = $1",
+      [id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ erro: "Livro não encontrado." });
+    }
+    return res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ erro: "Erro ao buscar livro." });
+  }
+});
+
 // POST /api/livros — só bibliotecário
 router.post("/", authMiddleware, soBibliotecario, async (req, res) => {
-  const { titulo, autor, nacionalidade, editora, ano, sinopse, exemplares, isbn, genero } = req.body;
+  const { titulo, autor, nacionalidade, editora, ano, sinopse, conteudo, exemplares, isbn, genero } = req.body;
 
   if (!titulo || !autor) {
     return res.status(400).json({ erro: "titulo e autor são obrigatórios." });
@@ -36,17 +61,21 @@ router.post("/", authMiddleware, soBibliotecario, async (req, res) => {
     return res.status(400).json({ erro: `A sinopse deve ter no máximo ${SINOPSE_MAX_LENGTH} caracteres.` });
   }
 
+  if (conteudo && conteudo.length > CONTEUDO_MAX_LENGTH) {
+    return res.status(400).json({ erro: `O conteúdo deve ter no máximo ${CONTEUDO_MAX_LENGTH} caracteres.` });
+  }
+
   if (nacionalidade && nacionalidade.length > NACIONALIDADE_MAX_LENGTH) {
     return res.status(400).json({ erro: `A nacionalidade deve ter no máximo ${NACIONALIDADE_MAX_LENGTH} caracteres.` });
   }
 
   try {
     const { rows } = await pool.query(
-      `INSERT INTO livros (titulo, autor, nacionalidade, editora, ano, sinopse, exemplares, isbn, genero)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      `INSERT INTO livros (titulo, autor, nacionalidade, editora, ano, sinopse, conteudo, exemplares, isbn, genero)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        RETURNING *`,
       [titulo, autor, nacionalidade || null, editora || null,
-       ano || null, sinopse || null, exemplares || 1, isbn || null, genero || null]
+       ano || null, sinopse || null, conteudo || null, exemplares || 1, isbn || null, genero || null]
     );
     return res.status(201).json(rows[0]);
   } catch (err) {
@@ -58,10 +87,14 @@ router.post("/", authMiddleware, soBibliotecario, async (req, res) => {
 // PUT /api/livros/:id — só bibliotecário
 router.put("/:id", authMiddleware, soBibliotecario, async (req, res) => {
   const { id } = req.params;
-  const { titulo, autor, nacionalidade, editora, ano, sinopse, exemplares, isbn, genero } = req.body;
+  const { titulo, autor, nacionalidade, editora, ano, sinopse, conteudo, exemplares, isbn, genero } = req.body;
 
   if (sinopse && sinopse.length > SINOPSE_MAX_LENGTH) {
     return res.status(400).json({ erro: `A sinopse deve ter no máximo ${SINOPSE_MAX_LENGTH} caracteres.` });
+  }
+
+  if (conteudo && conteudo.length > CONTEUDO_MAX_LENGTH) {
+    return res.status(400).json({ erro: `O conteúdo deve ter no máximo ${CONTEUDO_MAX_LENGTH} caracteres.` });
   }
 
   if (titulo && titulo.length > TITULO_MAX_LENGTH) {
@@ -76,11 +109,11 @@ router.put("/:id", authMiddleware, soBibliotecario, async (req, res) => {
     const { rows } = await pool.query(
       `UPDATE livros
        SET titulo=$1, autor=$2, nacionalidade=$3, editora=$4,
-           ano=$5, sinopse=$6, exemplares=$7, isbn=$8, genero=$9
-       WHERE id=$10
+           ano=$5, sinopse=$6, conteudo=$7, exemplares=$8, isbn=$9, genero=$10
+       WHERE id=$11
        RETURNING *`,
       [titulo, autor, nacionalidade || null, editora || null,
-       ano || null, sinopse || null, exemplares || 1, isbn || null, genero || null, id]
+       ano || null, sinopse || null, conteudo || null, exemplares || 1, isbn || null, genero || null, id]
     );
     if (rows.length === 0) {
       return res.status(404).json({ erro: "Livro não encontrado." });

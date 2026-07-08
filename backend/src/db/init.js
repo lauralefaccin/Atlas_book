@@ -76,6 +76,7 @@ export async function initDatabase({ closePool = true } = {}) {
 
     await client.query(`
       ALTER TABLE livros ADD COLUMN IF NOT EXISTS sinopse TEXT;
+      ALTER TABLE livros ADD COLUMN IF NOT EXISTS conteudo TEXT;
       ALTER TABLE estante ADD COLUMN IF NOT EXISTS is_favorito BOOLEAN NOT NULL DEFAULT FALSE;
       ALTER TABLE estante ADD COLUMN IF NOT EXISTS status VARCHAR(50) NOT NULL DEFAULT 'Pretendo Ler';
       ALTER TABLE estante ALTER COLUMN usuario_id SET NOT NULL;
