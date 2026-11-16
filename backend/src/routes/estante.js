@@ -45,6 +45,14 @@ router.post("/:livroId", async (req, res) => {
   }
 
   try {
+    const { rowCount: livroExiste } = await pool.query(
+      "SELECT 1 FROM livros WHERE id = $1",
+      [livroIdNumber]
+    );
+    if (livroExiste === 0) {
+      return res.status(404).json({ erro: "Livro não encontrado." });
+    }
+
     await pool.query(
       `INSERT INTO estante (usuario_id, usuario_tipo, livro_id, status)
        VALUES ($1, $2, $3, $4)

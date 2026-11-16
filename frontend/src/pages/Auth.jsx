@@ -89,8 +89,10 @@ function LoginForm({ tipo, setTipo }) {
 }
 
 // ── Register Form ─────────────────────────────────────────
-function CadastroForm({ tipo, setTipo }) {
-   const { cadastrarBibliotecario, cadastrarLeitor, login } = useAuth();
+// O cadastro público cria SOMENTE contas de leitor.
+// Contas de bibliotecário são criadas por um bibliotecário logado (tela Leitores).
+function CadastroForm() {
+  const { cadastrarLeitor, login } = useAuth();
 
   const [form, setForm] = useState({ nome: "", cpf: "", login: "", senha: "", confirmar: "" });
   const [erro, setErro] = useState("");
@@ -107,8 +109,7 @@ function CadastroForm({ tipo, setTipo }) {
     if (form.senha !== form.confirmar) { setErro("As senhas não coincidem."); return; }
     if (form.senha.length < 4) { setErro("A senha deve ter no mínimo 4 caracteres."); return; }
 
-    const fn = tipo === "bibliotecario" ? cadastrarBibliotecario : cadastrarLeitor;
-    const result = await fn({          // ← await aqui
+    const result = await cadastrarLeitor({
       nome: form.nome.trim(),
       cpf: form.cpf.trim(),
       login: form.login.trim(),
@@ -118,7 +119,7 @@ function CadastroForm({ tipo, setTipo }) {
     if (!result.ok) { setErro(result.erro); return; }
 
     // Login automático após cadastro
-    const resultLogin = await login(form.login.trim(), form.senha, tipo);
+    const resultLogin = await login(form.login.trim(), form.senha, "leitor");
     if (!resultLogin.ok) {
       // Cadastrou mas falhou o login — mostra sucesso e deixa o usuário entrar manualmente
       setSucesso("Cadastro realizado! Faça login para entrar.");
@@ -138,21 +139,10 @@ function CadastroForm({ tipo, setTipo }) {
 
   return (
     <div className="auth-form">
-      <span className="auth-type-label">Tipo de conta</span>
-      <div className="auth-type-buttons">
-        {TIPOS.map((t) => (
-          <button
-            key={t.value}
-            type="button"
-            className={`auth-type-btn ${tipo === t.value ? "selected" : ""}`}
-            onClick={() => { setTipo(t.value); setErro(""); setSucesso(""); }}
-          >
-            <div className="auth-type-btn-icon">{t.icon}</div>
-            <div className="auth-type-btn-label">{t.label}</div>
-            <div className="auth-type-btn-desc">{t.desc}</div>
-          </button>
-        ))}
-      </div>
+      <p className="auth-box-subtitle">
+        O cadastro cria uma conta de <strong>leitor</strong>. Contas de bibliotecário
+        são criadas por um administrador.
+      </p>
 
       <Field label="Nome completo" value={form.nome} onChange={set("nome")} placeholder="Seu nome" />
       <div className="auth-field">
@@ -227,7 +217,7 @@ export default function Auth() {
 
           {mode === "login"
             ? <LoginForm tipo={tipo} setTipo={setTipo} />
-            : <CadastroForm tipo={tipo} setTipo={setTipo} />
+            : <CadastroForm />
           }
 
           <div className="auth-toggle">

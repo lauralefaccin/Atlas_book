@@ -59,22 +59,31 @@ router.post("/login", async (req, res) => {
 });
 
 // POST /api/auth/cadastro
+// Cadastro PÚBLICO: cria somente contas de leitor.
+// Contas de bibliotecário NÃO podem ser criadas aqui — exigem um
+// bibliotecário autenticado (veja POST /api/usuarios).
 router.post("/cadastro", async (req, res) => {
   const { nome, cpf, login, senha, tipo } = req.body;
 
-  if (!nome || !login || !senha || !tipo) {
-    return res.status(400).json({ erro: "nome, login, senha e tipo são obrigatórios." });
+  // Qualquer tentativa de escolher um perfil diferente de "leitor" é recusada
+  // no servidor, independentemente do que o frontend exibe.
+  if (tipo !== undefined && tipo !== "leitor") {
+    return res.status(403).json({
+      erro: "O cadastro público permite apenas contas de leitor. Contas de bibliotecário só podem ser criadas por um administrador.",
+    });
+  }
+
+  if (!nome || !login || !senha) {
+    return res.status(400).json({ erro: "nome, login e senha são obrigatórios." });
   }
   if (senha.length < 4) {
     return res.status(400).json({ erro: "A senha deve ter no mínimo 4 caracteres." });
   }
 
   try {
-    const tabela = tipo === "bibliotecario" ? "bibliotecarios" : "leitores";
-
     // Verifica duplicidade
     const { rows: exist } = await pool.query(
-      `SELECT id FROM ${tabela} WHERE login = $1`,
+      "SELECT id FROM leitores WHERE login = $1",
       [login]
     );
     if (exist.length > 0) {
@@ -83,20 +92,16 @@ router.post("/cadastro", async (req, res) => {
 
     const hash = await bcrypt.hash(senha, 10);
 
-    if (tipo === "bibliotecario") {
-      await pool.query(
-        `INSERT INTO bibliotecarios (nome, cpf, login, senha_hash) VALUES ($1,$2,$3,$4)`,
-        [nome, cpf || null, login, hash]
-      );
-    } else {
-      await pool.query(
-        `INSERT INTO leitores (nome, cpf, login, senha_hash) VALUES ($1,$2,$3,$4)`,
-        [nome, cpf || null, login, hash]
-      );
-    }
+    await pool.query(
+      "INSERT INTO leitores (nome, cpf, login, senha_hash) VALUES ($1,$2,$3,$4)",
+      [nome, cpf || null, login, hash]
+    );
 
     return res.status(201).json({ mensagem: "Cadastro realizado com sucesso." });
   } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ erro: "CPF ou login já cadastrado." });
+    }
     console.error(err);
     return res.status(500).json({ erro: "Erro interno do servidor." });
   }

@@ -63,7 +63,7 @@ export default function Leitores() {
   const [search,      setSearch]      = useState("");
 
   const [modalAdd,    setModalAdd]    = useState(false);
-  const [formAdd,     setFormAdd]     = useState({ nome: "", cpf: "", data_registro: today(), login: "", senha: "" });
+  const [formAdd,     setFormAdd]     = useState({ tipo: "leitor", nome: "", cpf: "", data_registro: today(), login: "", senha: "" });
   const [erroAdd,     setErroAdd]     = useState("");
   const [salvandoAdd, setSalvandoAdd] = useState(false);
 
@@ -110,15 +110,18 @@ export default function Leitores() {
 
     try {
       setSalvandoAdd(true);
-      await api.criarLeitor({
+      await api.criarUsuario({
+        tipo: formAdd.tipo,
         nome: formAdd.nome.trim(),
         cpf: formAdd.cpf.trim(),
         login: formAdd.login.trim(),
         senha: formAdd.senha,
-        data_registro: formAdd.data_registro || today(),
+        ...(formAdd.tipo === "leitor"
+          ? { data_registro: formAdd.data_registro || today() }
+          : {}),
       });
       await carregar();
-      setFormAdd({ nome: "", cpf: "", data_registro: today(), login: "", senha: "" });
+      setFormAdd({ tipo: "leitor", nome: "", cpf: "", data_registro: today(), login: "", senha: "" });
       setErroAdd("");
       setModalAdd(false);
     } catch (err) {
@@ -178,7 +181,7 @@ export default function Leitores() {
           <h1>Leitores</h1>
         </div>
         <button type="button" className="leitores-add-btn" onClick={() => { setErroAdd(""); setModalAdd(true); }}>
-          + Novo Leitor
+          + Novo Usuário
         </button>
       </header>
 
@@ -234,8 +237,14 @@ export default function Leitores() {
       )}
 
       {/* Modal Cadastrar */}
-      <Modal open={modalAdd} onClose={() => { setModalAdd(false); setErroAdd(""); }} title="Cadastrar Leitor">
+      <Modal open={modalAdd} onClose={() => { setModalAdd(false); setErroAdd(""); }} title="Cadastrar Usuário">
         <div className="leitores-form-grid">
+          <FormField label="Tipo de conta" full>
+            <select {...inpAdd("tipo")}>
+              <option value="leitor">Leitor</option>
+              <option value="bibliotecario">Bibliotecário (acesso administrativo)</option>
+            </select>
+          </FormField>
           <FormField label="Nome completo" full><input {...inpAdd("nome")} placeholder="Nome" /></FormField>
           <FormField label="CPF">
             <input
@@ -246,12 +255,18 @@ export default function Leitores() {
               autoComplete="off"
             />
           </FormField>
-          <FormField label="Data de Registro"><input type="date" {...inpAdd("data_registro")} /></FormField>
+          {formAdd.tipo === "leitor" && (
+            <FormField label="Data de Registro"><input type="date" {...inpAdd("data_registro")} /></FormField>
+          )}
           <FormField label="Login"><input {...inpAdd("login")} placeholder="Ex: joao.silva" /></FormField>
           <FormField label="Senha"><input type="password" {...inpAdd("senha")} placeholder="Senha" /></FormField>
         </div>
         {erroAdd && <p className="leitores-modal-hint" style={{ color: "#8b2020", background: "#fde8e8", borderColor: "#f7c1c1" }}>{erroAdd}</p>}
-        <p className="leitores-modal-hint">O leitor usará esse login e senha para acessar o sistema.</p>
+        <p className="leitores-modal-hint">
+          {formAdd.tipo === "bibliotecario"
+            ? "Atenção: o bibliotecário terá acesso administrativo completo ao sistema."
+            : "O leitor usará esse login e senha para acessar o sistema."}
+        </p>
         <div className="leitores-modal-actions">
           <button className="btn-secondary" onClick={() => { setModalAdd(false); setErroAdd(""); }}>Cancelar</button>
           <button className="btn-primary" onClick={handleAdd} disabled={salvandoAdd}>
