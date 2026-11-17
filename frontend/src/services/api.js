@@ -48,6 +48,7 @@ export const api = {
 
   // Usuários genéricos (leitores e bibliotecários)
   getUsuarios:    ()       => req("GET",    "/usuarios"),
+  criarUsuario: (dados) => req("POST", "/usuarios", dados),
   editarUsuario:  (tipo, id, d) => req("PUT",    `/usuarios/${tipo}/${id}`, d),
   deletarUsuario: (tipo, id)     => req("DELETE", `/usuarios/${tipo}/${id}`),
 
